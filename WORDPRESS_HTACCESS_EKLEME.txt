@@ -1,0 +1,18 @@
+# WordPress .htaccess'e EKLENMESİ GEREKEN SATIRLAR
+# Bu satırları WordPress'in .htaccess dosyasına ekleyin
+# (sinavpaneli klasörünün ÜST dizinindeki .htaccess - WordPress'in olduğu yerde)
+
+# BEGIN sinavpaneli İstisnası
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteBase /
+
+# sinavpaneli klasörünü WordPress routing'den hariç tut
+RewriteRule ^sinavpaneli/ - [L]
+</IfModule>
+# END sinavpaneli İstisnası
+
+# Bundan sonra WordPress'in kendi kuralları gelecek
+# BEGIN WordPress
+# ...WordPress kuralları...
+# END WordPress

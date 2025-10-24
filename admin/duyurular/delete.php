@@ -1,21 +1,16 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/../../security.php';
+
+secureSessionStart();
+
 if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     header('Location: ../login.php');
     exit;
 }
 
-$host = "localhost";
-$db   = "polisask_sinavpaneli";
-$user = "polisask_sinavpaneli";
-$pass = "Ankara2024++";
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4",$user,$pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Veritabanı bağlantı hatası: " . $e->getMessage());
-}
+$pdo = getDbConnection();
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if($id <= 0) {

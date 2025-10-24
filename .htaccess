@@ -1,5 +1,13 @@
 # Apache Güvenlik Ayarları
 
+# WordPress Routing'i Devre Dışı Bırak
+# Bu klasör WordPress'ten bağımsız çalışır
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    # WordPress rewrite'ı durdur
+    RewriteOptions Inherit
+</IfModule>
+
 # PHP Bilgisini Gizle
 <IfModule mod_headers.c>
     Header unset X-Powered-By

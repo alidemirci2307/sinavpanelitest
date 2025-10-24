@@ -5,6 +5,12 @@ require_once __DIR__ . '/../../security.php';
 
 secureSessionStart();
 
+// Session kontrolü
+if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+    header('Location: ../login.php');
+    exit;
+}
+
 $pdo = getDbConnection();
 
 // Sayfa ayarları
@@ -57,8 +63,7 @@ $duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);
 // Header
 include __DIR__ . '/../includes/header.php';
 ?>
-                <li class="nav-item"><a class="nav-link" href="../istatistikler.php">İstatistikler</a></li>
-            
+
 <!-- Başarı Mesajı -->
 <?php if(isset($_GET['success'])): ?>
 <div class="alert alert-success alert-dismissible fade show">
