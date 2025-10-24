@@ -1,228 +1,453 @@
-<?php<?php<?php
+<?php<?php<?php<?php
 
-require_once __DIR__ . '/../config.php';
+ini_set('display_errors', 1);
 
-require_once __DIR__ . '/../db.php';require_once __DIR__ . '/../config.php';session_start();
+error_reporting(E_ALL);require_once __DIR__ . '/../config.php';
 
-require_once __DIR__ . '/../security.php';
 
-require_once __DIR__ . '/../db.php';if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
 
-secureSessionStart();
+require_once __DIR__ . '/../config.php';require_once __DIR__ . '/../db.php';require_once __DIR__ . '/../config.php';session_start();
 
-require_once __DIR__ . '/../security.php';    header('Location: login.php');
+require_once __DIR__ . '/../db.php';
 
-// Session kontrolü
+require_once __DIR__ . '/../security.php';require_once __DIR__ . '/../security.php';
 
-if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {    exit;
+
+
+secureSessionStart();require_once __DIR__ . '/../db.php';if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+
+
+
+if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {secureSessionStart();
 
     header('Location: login.php');
 
-    exit;secureSessionStart();}
+    exit;require_once __DIR__ . '/../security.php';    header('Location: login.php');
 
 }
 
-
+// Session kontrolü
 
 $pdo = getDbConnection();
 
-$page_title = "İstatistikler";// Session kontrolü$host = "localhost";
+$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {    exit;
+
+$selectedPackage = isset($_GET['packageName']) ? $_GET['packageName'] : '';
+
+    header('Location: login.php');
+
+// Package listesi
+
+$packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");    exit;secureSessionStart();}
+
+$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);
+
+}
+
+$params = $selectedPackage ? array(':package' => $selectedPackage) : array();
+
+$whereSQL = $selectedPackage ? "AND packageName = :package" : "";
+
+
+
+// Bugün$pdo = getDbConnection();
+
+$todayStmt = $pdo->prepare("SELECT COUNT(*) as total, COUNT(DISTINCT device_id) as unique_users FROM user_statistics WHERE DATE(login_time) = CURDATE() $whereSQL");
+
+$todayStmt->execute($params);$page_title = "İstatistikler";// Session kontrolü$host = "localhost";
+
+$today = $todayStmt->fetch(PDO::FETCH_ASSOC);
 
 $admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';
 
-if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {$db     = "polisask_sinavpaneli";
+// Dün
 
-// Seçili packageName
-
-$selectedPackage = isset($_GET['packageName']) ? $_GET['packageName'] : '';    header('Location: login.php');$user = "polisask_sinavpaneli";
-
-
-
-// Package listesi    exit;$pass = "Ankara2024++";
-
-$packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
-
-$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);}
-
-
-
-// Genel istatistiklertry {
-
-$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";
-
-$params = $selectedPackage ? array(':package' => $selectedPackage) : array();$pdo = getDbConnection();    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-
-
-
-// Bugün$page_title = "İstatistikler";    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-
-$todayQuery = "SELECT 
-
-    COUNT(*) as total_logins,$admin_username = $_SESSION['admin_username'] ?? 'Admin';} catch (PDOException $e) {
-
-    COUNT(DISTINCT device_id) as unique_users
-
-FROM user_statistics     die("Veritabanı bağlantısı hatası: " . $e->getMessage());
-
-WHERE DATE(login_time) = CURDATE() " . ($selectedPackage ? "AND packageName = :package" : "");
-
-$todayStmt = $pdo->prepare($todayQuery);// Seçili packageName}
-
-$todayStmt->execute($params);
-
-$today = $todayStmt->fetch(PDO::FETCH_ASSOC);$selectedPackage = $_GET['packageName'] ?? '';
-
-
-
-// Dün// Seçili packageName'i al
-
-$yesterdayQuery = "SELECT 
-
-    COUNT(*) as total_logins,// Package listesi$selectedPackage = $_GET['packageName'] ?? '';
-
-    COUNT(DISTINCT device_id) as unique_users
-
-FROM user_statistics $packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
-
-WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) " . ($selectedPackage ? "AND packageName = :package" : "");
-
-$yesterdayStmt = $pdo->prepare($yesterdayQuery);$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);// Mevcut packageName'leri al
+$yesterdayStmt = $pdo->prepare("SELECT COUNT(*) as total, COUNT(DISTINCT device_id) as unique_users FROM user_statistics WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) $whereSQL");if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {$db     = "polisask_sinavpaneli";
 
 $yesterdayStmt->execute($params);
 
-$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);$packageQuery = "SELECT DISTINCT packageName FROM user_statistics";
+$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);// Seçili packageName
 
 
 
-// Bu hafta// Genel istatistikler$packageStmt = $pdo->query($packageQuery);
+// Bu hafta$selectedPackage = isset($_GET['packageName']) ? $_GET['packageName'] : '';    header('Location: login.php');$user = "polisask_sinavpaneli";
 
-$thisWeekQuery = "SELECT 
+$weekStmt = $pdo->prepare("SELECT COUNT(*) as total, COUNT(DISTINCT device_id) as unique_users FROM user_statistics WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) $whereSQL");
 
-    COUNT(*) as total_logins,$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);
+$weekStmt->execute($params);
 
-    COUNT(DISTINCT device_id) as unique_users
+$week = $weekStmt->fetch(PDO::FETCH_ASSOC);
 
-FROM user_statistics $params = $selectedPackage ? [':package' => $selectedPackage] : [];
+// Package listesi    exit;$pass = "Ankara2024++";
 
-WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) " . ($selectedPackage ? "AND packageName = :package" : "");
+// Bu ay
 
-$thisWeekStmt = $pdo->prepare($thisWeekQuery);// Son 30 günü al
+$monthStmt = $pdo->prepare("SELECT COUNT(*) as total, COUNT(DISTINCT device_id) as unique_users FROM user_statistics WHERE YEAR(login_time) = YEAR(CURDATE()) AND MONTH(login_time) = MONTH(CURDATE()) $whereSQL");$packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
 
-$thisWeekStmt->execute($params);
+$monthStmt->execute($params);
 
-$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);// Bugün$endDate = new DateTime();
-
-
-
-// Bu ay$todayQuery = "SELECT $startDate = (clone $endDate)->modify('-30 days');
-
-$thisMonthQuery = "SELECT 
-
-    COUNT(*) as total_logins,    COUNT(*) as total_logins,
-
-    COUNT(DISTINCT device_id) as unique_users
-
-FROM user_statistics     COUNT(DISTINCT device_id) as unique_users// Tarih formatlama fonksiyonu
-
-WHERE YEAR(login_time) = YEAR(CURDATE()) AND MONTH(login_time) = MONTH(CURDATE()) " . ($selectedPackage ? "AND packageName = :package" : "");
-
-$thisMonthStmt = $pdo->prepare($thisMonthQuery);FROM user_statistics function formatTurkishDate($date, $format = '%d.%m.%Y %A') {
-
-$thisMonthStmt->execute($params);
-
-$thisMonth = $thisMonthStmt->fetch(PDO::FETCH_ASSOC);WHERE DATE(login_time) = CURDATE() {$whereClause}";    setlocale(LC_TIME, 'tr_TR.UTF-8');
+$month = $monthStmt->fetch(PDO::FETCH_ASSOC);$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);}
 
 
 
-// Toplam$todayStmt = $pdo->prepare($todayQuery);    $timestamp = strtotime($date);
+// Son 30 gün
 
-$totalQuery = "SELECT 
+$dailyStmt = $pdo->prepare("SELECT DATE(login_time) as day, COUNT(*) as logins, COUNT(DISTINCT device_id) as users FROM user_statistics WHERE login_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) $whereSQL GROUP BY DATE(login_time) ORDER BY day ASC");
 
-    COUNT(*) as total_logins,$todayStmt->execute($params);    return strftime($format, $timestamp);
+$dailyStmt->execute($params);// Genel istatistiklertry {
 
-    COUNT(DISTINCT device_id) as unique_users
+$dailyData = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);
 
-FROM user_statistics " . $whereClause;$today = $todayStmt->fetch(PDO::FETCH_ASSOC);}
-
-$totalStmt = $pdo->prepare($totalQuery);
-
-$totalStmt->execute($params);
-
-$total = $totalStmt->fetch(PDO::FETCH_ASSOC);
-
-// Dün// Fark hesaplama fonksiyonu
-
-// Son 30 günlük günlük istatistikler
-
-$dailyQuery = "SELECT $yesterdayQuery = "SELECT function calculateDifference($current, $previous) {
-
-    DATE(login_time) as day,
-
-    COUNT(*) as logins,    COUNT(*) as total_logins,    if ($previous == 0) return 0;
-
-    COUNT(DISTINCT device_id) as unique_users
-
-FROM user_statistics     COUNT(DISTINCT device_id) as unique_users    return $current - $previous;
-
-WHERE login_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) " . ($selectedPackage ? "AND packageName = :package" : "") . "
-
-GROUP BY DATE(login_time)FROM user_statistics }
-
-ORDER BY day ASC";
-
-$dailyStmt = $pdo->prepare($dailyQuery);WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) {$whereClause}";
-
-$dailyStmt->execute($params);
-
-$dailyData = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);$yesterdayStmt = $pdo->prepare($yesterdayQuery);// ** GÜNLÜK İSTATİSTİKLER **
-
-
-
-// Grafik verileri$yesterdayStmt->execute($params);$dailyQuery = "SELECT
+$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";
 
 $chartLabels = array();
 
-$chartLogins = array();$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);    DATE(login_time) AS day,
+$chartLogins = array();$params = $selectedPackage ? array(':package' => $selectedPackage) : array();$pdo = getDbConnection();    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
 
 $chartUsers = array();
 
-foreach($dailyData as $row) {    COUNT(*) AS total_logins,
+foreach($dailyData as $row) {
 
     $chartLabels[] = date('d M', strtotime($row['day']));
 
-    $chartLogins[] = $row['logins'];// Bu hafta    COUNT(DISTINCT device_id) AS unique_users,
+    $chartLogins[] = $row['logins'];// Bugün$page_title = "İstatistikler";    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-    $chartUsers[] = $row['unique_users'];
+    $chartUsers[] = $row['users'];
 
-}$thisWeekQuery = "SELECT     COUNT(DISTINCT CASE WHEN NOT EXISTS (
+}$todayQuery = "SELECT 
 
 ?>
 
-<!DOCTYPE html>    COUNT(*) as total_logins,        SELECT 1 FROM user_statistics us2
+<!DOCTYPE html>    COUNT(*) as total_logins,$admin_username = $_SESSION['admin_username'] ?? 'Admin';} catch (PDOException $e) {
 
 <html lang="tr">
 
-<head>    COUNT(DISTINCT device_id) as unique_users        WHERE us2.device_id = us.device_id
+<head>    COUNT(DISTINCT device_id) as unique_users
 
     <meta charset="UTF-8">
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">FROM user_statistics         AND us2.login_time < us.login_time
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">FROM user_statistics     die("Veritabanı bağlantısı hatası: " . $e->getMessage());
 
     <title>İstatistikler - Admin Panel</title>
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) {$whereClause}";    ) THEN us.device_id END) AS new_users
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">WHERE DATE(login_time) = CURDATE() " . ($selectedPackage ? "AND packageName = :package" : "");
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">$thisWeekStmt = $pdo->prepare($thisWeekQuery);FROM user_statistics us
+    <link rel="stylesheet" href="assets/css/admin-style.css">$todayStmt = $pdo->prepare($todayQuery);// Seçili packageName}
 
-    <link rel="stylesheet" href="assets/css/admin-style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>$thisWeekStmt->execute($params);WHERE (:packageName = '' OR packageName = :packageName)
+</head>$todayStmt->execute($params);
 
-</head>
+<body>
 
-<body>$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);AND DATE(login_time) BETWEEN :startDate AND :endDate
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">$today = $todayStmt->fetch(PDO::FETCH_ASSOC);$selectedPackage = $_GET['packageName'] ?? '';
+
+        <div class="container-fluid">
+
+            <a class="navbar-brand" href="index.php"><i class="bi bi-shield-check"></i> Admin Panel</a>
+
+            <div class="collapse navbar-collapse">
+
+                <ul class="navbar-nav me-auto">// Dün// Seçili packageName'i al
+
+                    <li class="nav-item"><a class="nav-link" href="index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
+
+                    <li class="nav-item"><a class="nav-link" href="duyurular/"><i class="bi bi-megaphone"></i> Duyurular</a></li>$yesterdayQuery = "SELECT 
+
+                    <li class="nav-item"><a class="nav-link active" href="istatistikler.php"><i class="bi bi-graph-up"></i> İstatistikler</a></li>
+
+                </ul>    COUNT(*) as total_logins,// Package listesi$selectedPackage = $_GET['packageName'] ?? '';
+
+                <div class="d-flex align-items-center">
+
+                    <span class="text-white me-3"><i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?></span>    COUNT(DISTINCT device_id) as unique_users
+
+                    <a href="logout.php" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Çıkış</a>
+
+                </div>FROM user_statistics $packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
+
+            </div>
+
+        </div>WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) " . ($selectedPackage ? "AND packageName = :package" : "");
+
+    </nav>
+
+$yesterdayStmt = $pdo->prepare($yesterdayQuery);$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);// Mevcut packageName'leri al
+
+    <div class="container-fluid py-4">
+
+        <div class="row mb-4">$yesterdayStmt->execute($params);
+
+            <div class="col-md-6">
+
+                <h1 class="page-title"><i class="bi bi-graph-up-arrow"></i> İstatistikler</h1>$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);$packageQuery = "SELECT DISTINCT packageName FROM user_statistics";
+
+            </div>
+
+            <div class="col-md-6 text-end">
+
+                <form method="GET">
+
+                    <select name="packageName" class="form-select form-select-sm" style="width:auto;display:inline-block" onchange="this.form.submit()">// Bu hafta// Genel istatistikler$packageStmt = $pdo->query($packageQuery);
+
+                        <option value="">Tüm Uygulamalar</option>
+
+                        <?php foreach($packages as $pkg): ?>$thisWeekQuery = "SELECT 
+
+                        <option value="<?php echo htmlspecialchars($pkg); ?>" <?php echo $selectedPackage === $pkg ? 'selected' : ''; ?>>
+
+                            <?php echo htmlspecialchars($pkg); ?>    COUNT(*) as total_logins,$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);
+
+                        </option>
+
+                        <?php endforeach; ?>    COUNT(DISTINCT device_id) as unique_users
+
+                    </select>
+
+                </form>FROM user_statistics $params = $selectedPackage ? [':package' => $selectedPackage] : [];
+
+            </div>
+
+        </div>WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) " . ($selectedPackage ? "AND packageName = :package" : "");
+
+
+
+        <!-- Kartlar -->$thisWeekStmt = $pdo->prepare($thisWeekQuery);// Son 30 günü al
+
+        <div class="row mb-4">
+
+            <div class="col-lg-3 col-md-6 mb-3">$thisWeekStmt->execute($params);
+
+                <div class="stat-card">
+
+                    <div class="stat-card-icon bg-primary"><i class="bi bi-calendar-day"></i></div>$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);// Bugün$endDate = new DateTime();
+
+                    <div class="stat-card-info">
+
+                        <div class="stat-card-title">Bugün</div>
+
+                        <div class="stat-card-value"><?php echo number_format($today['total']); ?></div>
+
+                        <small class="text-muted"><?php echo number_format($today['unique_users']); ?> kullanıcı</small>// Bu ay$todayQuery = "SELECT $startDate = (clone $endDate)->modify('-30 days');
+
+                    </div>
+
+                </div>$thisMonthQuery = "SELECT 
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-3">    COUNT(*) as total_logins,    COUNT(*) as total_logins,
+
+                <div class="stat-card">
+
+                    <div class="stat-card-icon bg-info"><i class="bi bi-calendar-minus"></i></div>    COUNT(DISTINCT device_id) as unique_users
+
+                    <div class="stat-card-info">
+
+                        <div class="stat-card-title">Dün</div>FROM user_statistics     COUNT(DISTINCT device_id) as unique_users// Tarih formatlama fonksiyonu
+
+                        <div class="stat-card-value"><?php echo number_format($yesterday['total']); ?></div>
+
+                        <small class="text-muted"><?php echo number_format($yesterday['unique_users']); ?> kullanıcı</small>WHERE YEAR(login_time) = YEAR(CURDATE()) AND MONTH(login_time) = MONTH(CURDATE()) " . ($selectedPackage ? "AND packageName = :package" : "");
+
+                    </div>
+
+                </div>$thisMonthStmt = $pdo->prepare($thisMonthQuery);FROM user_statistics function formatTurkishDate($date, $format = '%d.%m.%Y %A') {
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-3">$thisMonthStmt->execute($params);
+
+                <div class="stat-card">
+
+                    <div class="stat-card-icon bg-success"><i class="bi bi-calendar-week"></i></div>$thisMonth = $thisMonthStmt->fetch(PDO::FETCH_ASSOC);WHERE DATE(login_time) = CURDATE() {$whereClause}";    setlocale(LC_TIME, 'tr_TR.UTF-8');
+
+                    <div class="stat-card-info">
+
+                        <div class="stat-card-title">Bu Hafta</div>
+
+                        <div class="stat-card-value"><?php echo number_format($week['total']); ?></div>
+
+                        <small class="text-muted"><?php echo number_format($week['unique_users']); ?> kullanıcı</small>// Toplam$todayStmt = $pdo->prepare($todayQuery);    $timestamp = strtotime($date);
+
+                    </div>
+
+                </div>$totalQuery = "SELECT 
+
+            </div>
+
+            <div class="col-lg-3 col-md-6 mb-3">    COUNT(*) as total_logins,$todayStmt->execute($params);    return strftime($format, $timestamp);
+
+                <div class="stat-card">
+
+                    <div class="stat-card-icon bg-warning"><i class="bi bi-calendar-month"></i></div>    COUNT(DISTINCT device_id) as unique_users
+
+                    <div class="stat-card-info">
+
+                        <div class="stat-card-title">Bu Ay</div>FROM user_statistics " . $whereClause;$today = $todayStmt->fetch(PDO::FETCH_ASSOC);}
+
+                        <div class="stat-card-value"><?php echo number_format($month['total']); ?></div>
+
+                        <small class="text-muted"><?php echo number_format($month['unique_users']); ?> kullanıcı</small>$totalStmt = $pdo->prepare($totalQuery);
+
+                    </div>
+
+                </div>$totalStmt->execute($params);
+
+            </div>
+
+        </div>$total = $totalStmt->fetch(PDO::FETCH_ASSOC);
+
+
+
+        <!-- Grafik -->// Dün// Fark hesaplama fonksiyonu
+
+        <div class="card mb-4">
+
+            <div class="card-header"><h5><i class="bi bi-graph-up"></i> Son 30 Gün</h5></div>// Son 30 günlük günlük istatistikler
+
+            <div class="card-body">
+
+                <canvas id="chart" height="80"></canvas>$dailyQuery = "SELECT $yesterdayQuery = "SELECT function calculateDifference($current, $previous) {
+
+            </div>
+
+        </div>    DATE(login_time) as day,
+
+
+
+        <!-- Tablo -->    COUNT(*) as logins,    COUNT(*) as total_logins,    if ($previous == 0) return 0;
+
+        <div class="card">
+
+            <div class="card-header"><h5><i class="bi bi-table"></i> Günlük Detaylar</h5></div>    COUNT(DISTINCT device_id) as unique_users
+
+            <div class="card-body">
+
+                <div class="table-responsive">FROM user_statistics     COUNT(DISTINCT device_id) as unique_users    return $current - $previous;
+
+                    <table class="table table-hover">
+
+                        <thead>WHERE login_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) " . ($selectedPackage ? "AND packageName = :package" : "") . "
+
+                            <tr>
+
+                                <th>Tarih</th>GROUP BY DATE(login_time)FROM user_statistics }
+
+                                <th>Gün</th>
+
+                                <th>Giriş</th>ORDER BY day ASC";
+
+                                <th>Kullanıcı</th>
+
+                            </tr>$dailyStmt = $pdo->prepare($dailyQuery);WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) {$whereClause}";
+
+                        </thead>
+
+                        <tbody>$dailyStmt->execute($params);
+
+                            <?php 
+
+                            $reversed = array_reverse($dailyData);$dailyData = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);$yesterdayStmt = $pdo->prepare($yesterdayQuery);// ** GÜNLÜK İSTATİSTİKLER **
+
+                            foreach($reversed as $row): 
+
+                                $days = array('Pzt','Sal','Çar','Per','Cum','Cmt','Paz');
+
+                                $day = $days[date('N', strtotime($row['day'])) - 1];
+
+                            ?>// Grafik verileri$yesterdayStmt->execute($params);$dailyQuery = "SELECT
+
+                            <tr>
+
+                                <td><?php echo date('d.m.Y', strtotime($row['day'])); ?></td>$chartLabels = array();
+
+                                <td><span class="badge bg-light text-dark"><?php echo $day; ?></span></td>
+
+                                <td><strong><?php echo number_format($row['logins']); ?></strong></td>$chartLogins = array();$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);    DATE(login_time) AS day,
+
+                                <td><?php echo number_format($row['users']); ?></td>
+
+                            </tr>$chartUsers = array();
+
+                            <?php endforeach; ?>
+
+                        </tbody>foreach($dailyData as $row) {    COUNT(*) AS total_logins,
+
+                    </table>
+
+                </div>    $chartLabels[] = date('d M', strtotime($row['day']));
+
+            </div>
+
+        </div>    $chartLogins[] = $row['logins'];// Bu hafta    COUNT(DISTINCT device_id) AS unique_users,
+
+    </div>
+
+    $chartUsers[] = $row['unique_users'];
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>}$thisWeekQuery = "SELECT     COUNT(DISTINCT CASE WHEN NOT EXISTS (
+
+        new Chart(document.getElementById('chart'), {
+
+            type: 'line',?>
+
+            data: {
+
+                labels: <?php echo json_encode($chartLabels); ?>,<!DOCTYPE html>    COUNT(*) as total_logins,        SELECT 1 FROM user_statistics us2
+
+                datasets: [{
+
+                    label: 'Giriş',<html lang="tr">
+
+                    data: <?php echo json_encode($chartLogins); ?>,
+
+                    borderColor: 'rgb(102,126,234)',<head>    COUNT(DISTINCT device_id) as unique_users        WHERE us2.device_id = us.device_id
+
+                    backgroundColor: 'rgba(102,126,234,0.1)',
+
+                    tension: 0.3,    <meta charset="UTF-8">
+
+                    fill: true
+
+                }, {    <meta name="viewport" content="width=device-width, initial-scale=1.0">FROM user_statistics         AND us2.login_time < us.login_time
+
+                    label: 'Kullanıcı',
+
+                    data: <?php echo json_encode($chartUsers); ?>,    <title>İstatistikler - Admin Panel</title>
+
+                    borderColor: 'rgb(40,167,69)',
+
+                    backgroundColor: 'rgba(40,167,69,0.1)',    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) {$whereClause}";    ) THEN us.device_id END) AS new_users
+
+                    tension: 0.3,
+
+                    fill: true    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+                }]
+
+            },    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">$thisWeekStmt = $pdo->prepare($thisWeekQuery);FROM user_statistics us
+
+            options: {
+
+                responsive: true,    <link rel="stylesheet" href="assets/css/admin-style.css">
+
+                scales: { y: { beginAtZero: true } }
+
+            }    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>$thisWeekStmt->execute($params);WHERE (:packageName = '' OR packageName = :packageName)
+
+        });
+
+    </script></head>
+
+</body>
+
+</html><body>$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);AND DATE(login_time) BETWEEN :startDate AND :endDate
+
 
     <!-- Navbar -->
 
