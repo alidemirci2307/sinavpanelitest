@@ -1,36 +1,56 @@
 <?php
-session_start();
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../security.php';
+
+secureSessionStart();
+
 if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     http_response_code(403);
-    exit(json_encode(['error' => 'Unauthorized access']));
+    exit(json_encode(['error' => 'Yetkisiz erişim']));
 }
 
-$host = "localhost";
-$db   = "polisask_sinavpaneli";
-$user = "polisask_sinavpaneli";
-$pass = "Ankara2024++";
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch (PDOException $e) {
-    http_response_code(500);
-    exit(json_encode(['error' => 'Database connection failed']));
-}
+$pdo = getDbConnection();
 
 // JSON isteğini al ve çöz
 $input = json_decode(file_get_contents('php://input'), true);
-if (!isset($input['feedback_id']) || !isset($input['reply'])) {
+
+if (!is_array($input) || !isset($input['feedback_id']) || !isset($input['reply']) || !isset($input['csrf_token'])) {
     http_response_code(400);
-    exit(json_encode(['error' => 'Invalid input']));
+    exit(json_encode(['error' => 'Geçersiz istek']));
+}
+
+// CSRF kontrolü
+if (!verifyCSRFToken($input['csrf_token'])) {
+    http_response_code(403);
+    exit(json_encode(['error' => 'Güvenlik hatası']));
 }
 
 $feedbackId = (int)$input['feedback_id'];
-$reply = trim($input['reply']);
+$reply = sanitizeInput($input['reply']);
 
 if (empty($reply)) {
     http_response_code(400);
-    exit(json_encode(['error' => 'Reply cannot be empty']));
+    exit(json_encode(['error' => 'Yanıt boş olamaz']));
+}
+
+if (strlen($reply) > 2000) {
+    http_response_code(400);
+    exit(json_encode(['error' => 'Yanıt çok uzun']));
+}
+
+// Feedback'in var olduğunu kontrol et
+try {
+    $checkStmt = $pdo->prepare("SELECT id FROM feedbacks WHERE id = :id LIMIT 1");
+    $checkStmt->execute([':id' => $feedbackId]);
+    if (!$checkStmt->fetch()) {
+        http_response_code(404);
+        exit(json_encode(['error' => 'Talep bulunamadı']));
+    }
+} catch (PDOException $e) {
+    error_log("Check feedback error: " . $e->getMessage());
+    http_response_code(500);
+    exit(json_encode(['error' => 'Bir hata oluştu']));
 }
 
 // Veritabanına yanıt ekle
@@ -42,8 +62,9 @@ try {
     ]);
 
     http_response_code(200);
-    echo json_encode(['success' => 'Reply sent successfully']);
+    echo json_encode(['success' => 'Yanıt gönderildi']);
 } catch (PDOException $e) {
+    error_log("Reply feedback error: " . $e->getMessage());
     http_response_code(500);
-    echo json_encode(['error' => 'Failed to insert reply']);
+    echo json_encode(['error' => 'Yanıt gönderilemedi']);
 }

@@ -1,72 +1,77 @@
 <?php
-session_start();
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/../../security.php';
+
+secureSessionStart();
+
 if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
     header('Location: ../login.php');
     exit;
 }
 
-$host = "localhost";
-$db   = "polisask_sinavpaneli";
-$user = "polisask_sinavpaneli";
-$pass = "Ankara2024++";
-
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4",$user,$pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Veritabanı bağlantı hatası: " . $e->getMessage());
-}
+$pdo = getDbConnection();
 
 $error = '';
 $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $type = $_POST['type'] ?? '';
-    $title = trim($_POST['title'] ?? '');
-    $content = trim($_POST['content'] ?? '');
-    $url = trim($_POST['url'] ?? '');
-    $status = $_POST['status'] ?? 'active';
-    $priority = isset($_POST['priority']) ? (int)$_POST['priority'] : 0;
-    $app_package = trim($_POST['app_package'] ?? '');
-
-    // Basit doğrulama
-    $validTypes = ['url', 'text', 'dialog', 'info', 'five_stars'];
-    $validStatuses = ['active', 'inactive'];
-    if(!in_array($type, $validTypes)) {
-        $error = "Geçersiz duyuru tipi.";
-    } elseif(!in_array($status, $validStatuses)) {
-        $error = "Geçersiz duyuru durumu.";
-    } elseif(empty($title) || empty($content)) {
-        $error = "Başlık ve içerik boş olamaz.";
-    } elseif($type === 'url' && empty($url)) {
-        $error = "URL tipi için URL alanı zorunludur.";
-    } elseif(empty($app_package)) {
-        $error = "App Package alanı boş olamaz.";
-    } elseif($priority < 0) {
-        $error = "Öncelik negatif olamaz.";
+    // CSRF koruması
+    $csrfToken = $_POST['csrf_token'] ?? '';
+    if (!verifyCSRFToken($csrfToken)) {
+        $error = "Güvenlik hatası. Lütfen tekrar deneyin.";
     } else {
-        // URL doğrulama (isteğe bağlı)
-        if($type === 'url' && !filter_var($url, FILTER_VALIDATE_URL)) {
-            $error = "Geçerli bir URL giriniz.";
+        $type = sanitizeInput($_POST['type'] ?? '');
+        $title = sanitizeInput($_POST['title'] ?? '');
+        $content = sanitizeInput($_POST['content'] ?? '');
+        $url = sanitizeInput($_POST['url'] ?? '');
+        $status = sanitizeInput($_POST['status'] ?? 'active');
+        $priority = isset($_POST['priority']) ? (int)$_POST['priority'] : 0;
+        $app_package = sanitizeInput($_POST['app_package'] ?? '');
+
+        // Basit doğrulama
+        $validTypes = ['url', 'text', 'dialog', 'info', 'five_stars'];
+        $validStatuses = ['active', 'inactive'];
+        
+        if(!in_array($type, $validTypes, true)) {
+            $error = "Geçersiz duyuru tipi.";
+        } elseif(!in_array($status, $validStatuses, true)) {
+            $error = "Geçersiz duyuru durumu.";
+        } elseif(empty($title) || empty($content)) {
+            $error = "Başlık ve içerik boş olamaz.";
+        } elseif($type === 'url' && empty($url)) {
+            $error = "URL tipi için URL alanı zorunludur.";
+        } elseif(empty($app_package)) {
+            $error = "App Package alanı boş olamaz.";
+        } elseif($priority < 0 || $priority > 100) {
+            $error = "Öncelik 0-100 arasında olmalıdır.";
+        } elseif(strlen($title) > 200 || strlen($content) > 2000) {
+            $error = "Başlık veya içerik çok uzun.";
         } else {
-            try {
-                $stmt = $pdo->prepare("INSERT INTO duyurular (type, title, content, url, status, priority, app_package) VALUES (:type, :title, :content, :url, :status, :priority, :app_package)");
-                $stmt->execute([
-                    ':type' => $type,
-                    ':title' => $title,
-                    ':content' => $content,
-                    ':url' => $url ?: null,
-                    ':status' => $status,
-                    ':priority' => $priority,
-                    ':app_package' => $app_package
-                ]);
-                $success = "Duyuru başarıyla eklendi.";
-                // Formu temizle
-                $type = $title = $content = $url = $app_package = '';
-                $status = 'active';
-                $priority = 0;
-            } catch(PDOException $e) {
-                $error = "Duyuru eklenirken bir hata oluştu: " . $e->getMessage();
+            // URL doğrulama
+            if($type === 'url' && !empty($url) && !filter_var($url, FILTER_VALIDATE_URL)) {
+                $error = "Geçerli bir URL giriniz.";
+            } else {
+                try {
+                    $stmt = $pdo->prepare("INSERT INTO duyurular (type, title, content, url, status, priority, app_package) VALUES (:type, :title, :content, :url, :status, :priority, :app_package)");
+                    $stmt->execute([
+                        ':type' => $type,
+                        ':title' => $title,
+                        ':content' => $content,
+                        ':url' => $url ?: null,
+                        ':status' => $status,
+                        ':priority' => $priority,
+                        ':app_package' => $app_package
+                    ]);
+                    $success = "Duyuru başarıyla eklendi.";
+                    // Formu temizle
+                    $type = $title = $content = $url = $app_package = '';
+                    $status = 'active';
+                    $priority = 0;
+                } catch(PDOException $e) {
+                    error_log("Add announcement error: " . $e->getMessage());
+                    $error = "Duyuru eklenirken bir hata oluştu.";
+                }
             }
         }
     }
@@ -115,12 +120,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <div class="container mt-4">
     <h3 class="text-center">Yeni Duyuru Ekle</h3>
     <?php if (!empty($error)): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($error, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="alert alert-danger"><?= escapeHtml($error) ?></div>
     <?php endif; ?>
     <?php if (!empty($success)): ?>
-        <div class="alert alert-success"><?= htmlspecialchars($success, ENT_QUOTES, 'UTF-8') ?></div>
+        <div class="alert alert-success"><?= escapeHtml($success) ?></div>
     <?php endif; ?>
     <form method="post" action="">
+        <input type="hidden" name="csrf_token" value="<?= escapeHtml(generateCSRFToken()); ?>">
         <div class="mb-3">
             <label for="type" class="form-label">Duyuru Tipi</label>
             <select name="type" id="type" class="form-select" onchange="toggleUrlField()" required>
@@ -134,15 +140,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
         <div class="mb-3">
             <label for="title" class="form-label">Başlık</label>
-            <input type="text" name="title" id="title" class="form-control" value="<?= htmlspecialchars($title ?? '', ENT_QUOTES, 'UTF-8') ?>" required>
+            <input type="text" name="title" id="title" class="form-control" maxlength="200" value="<?= escapeHtml($title ?? '') ?>" required>
         </div>
         <div class="mb-3">
             <label for="content" class="form-label">İçerik</label>
-            <textarea name="content" id="content" class="form-control" rows="4" required><?= htmlspecialchars($content ?? '', ENT_QUOTES, 'UTF-8') ?></textarea>
+            <textarea name="content" id="content" class="form-control" rows="4" maxlength="2000" required><?= escapeHtml($content ?? '') ?></textarea>
         </div>
         <div class="mb-3" id="urlField" style="display: none;">
             <label for="url" class="form-label">URL</label>
-            <input type="url" name="url" id="url" class="form-control" value="<?= htmlspecialchars($url ?? '', ENT_QUOTES, 'UTF-8') ?>">
+            <input type="url" name="url" id="url" class="form-control" value="<?= escapeHtml($url ?? '') ?>">
         </div>
         <div class="mb-3">
             <label for="app_package" class="form-label">App Package</label>

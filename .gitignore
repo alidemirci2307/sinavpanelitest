@@ -1,0 +1,45 @@
+# Yapılandırma dosyaları
+config.php
+
+# Veritabanı yedekleri
+*.sql
+*.sql.gz
+
+# Log dosyaları
+*.log
+error.log
+debug.log
+
+# Geçici dosyalar
+*.tmp
+*.temp
+*.cache
+
+# Vendor klasörü (Composer)
+vendor/
+
+# IDE dosyaları
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# OS dosyaları
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# E-posta listeleri (hassas veri)
+playstore/emails.txt
+
+# Composer lock
+composer.lock
+
+# Environment dosyaları
+.env
+.env.local
+.env.*.local
+
+# Upload klasörleri
+uploads/
+files/

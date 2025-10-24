@@ -1,0 +1,2 @@
+# Bu dosyayı silmeyin - Log klasörünün git'te izlenmesi için gerekli
+# Ancak log dosyaları .gitignore'da listelendiği için commit edilmeyecek

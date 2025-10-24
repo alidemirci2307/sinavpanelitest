@@ -1,40 +1,49 @@
 <?php
-header('Content-Type: application/json; charset=utf-8');
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../db.php';
+require_once __DIR__ . '/../security.php';
 
-$host = "localhost";
-$db   = "polisask_sinavpaneli";
-$user = "polisask_sinavpaneli";
-$pass = "Ankara2024++";
+secureSessionStart();
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4",$user,$pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    echo json_encode(["status"=>"error","message"=>$e->getMessage()]);
-    exit;
+// Rate limiting
+if (!checkRateLimit('feedback_reply_' . ($_SERVER['REMOTE_ADDR'] ?? 'unknown'), 10, 3600)) {
+    sendJsonResponse(["status" => "error", "message" => "Çok fazla istek."], 429);
 }
+
+$pdo = getDbConnection();
 
 $json = file_get_contents('php://input');
 $data = json_decode($json, true);
 
+if (!is_array($data)) {
+    sendJsonResponse(["status" => "error", "message" => "Geçersiz veri formatı."], 400);
+}
+
 $feedback_id = isset($data['feedback_id']) ? (int)$data['feedback_id'] : 0;
-$message = isset($data['message']) ? $data['message'] : '';
+$message = sanitizeInput($data['message'] ?? '');
 
 if($feedback_id <= 0 || empty($message)) {
-    echo json_encode(["status" => "error", "message" => "Eksik bilgi."]);
-    exit;
+    sendJsonResponse(["status" => "error", "message" => "Eksik bilgi."], 400);
 }
 
-$stmt = $pdo->prepare("SELECT * FROM feedbacks WHERE id = :id");
-$stmt->execute([':id' => $feedback_id]);
-$feedback = $stmt->fetch(PDO::FETCH_ASSOC);
-
-if(!$feedback) {
-    echo json_encode(["status" => "error", "message" => "Feedback bulunamadı."]);
-    exit;
+if(strlen($message) > 2000) {
+    sendJsonResponse(["status" => "error", "message" => "Mesaj çok uzun."], 400);
 }
 
-$stmtReply = $pdo->prepare("INSERT INTO feedback_conversations (feedback_id, sender, message) VALUES (:fid, 'user', :message)");
-$stmtReply->execute([':fid' => $feedback_id, ':message' => $message]);
+try {
+    $stmt = $pdo->prepare("SELECT id FROM feedbacks WHERE id = :id LIMIT 1");
+    $stmt->execute([':id' => $feedback_id]);
+    $feedback = $stmt->fetch(PDO::FETCH_ASSOC);
 
-echo json_encode(["status" => "success", "message" => "Yanıt kaydedildi."]);
+    if(!$feedback) {
+        sendJsonResponse(["status" => "error", "message" => "Talep bulunamadı."], 404);
+    }
+
+    $stmtReply = $pdo->prepare("INSERT INTO feedback_conversations (feedback_id, sender, message, created_at) VALUES (:fid, 'user', :message, NOW())");
+    $stmtReply->execute([':fid' => $feedback_id, ':message' => $message]);
+
+    sendJsonResponse(["status" => "success", "message" => "Yanıt kaydedildi."]);
+} catch(PDOException $e) {
+    error_log("Feedback reply error: " . $e->getMessage());
+    sendJsonResponse(["status" => "error", "message" => "Bir hata oluştu."], 500);
+}
