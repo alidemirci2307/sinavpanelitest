@@ -1,380 +1,758 @@
-<?php<?php
+<?php<?php<?php
 
-require_once __DIR__ . '/../config.php';session_start();
+require_once __DIR__ . '/../config.php';
+
+require_once __DIR__ . '/../db.php';require_once __DIR__ . '/../config.php';session_start();
+
+require_once __DIR__ . '/../security.php';
 
 require_once __DIR__ . '/../db.php';if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
 
+secureSessionStart();
+
 require_once __DIR__ . '/../security.php';    header('Location: login.php');
 
-    exit;
+// Session kontrolü
 
-secureSessionStart();}
+if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {    exit;
 
+    header('Location: login.php');
 
-
-// Session kontrolü$host = "localhost";
-
-if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {$db     = "polisask_sinavpaneli";
-
-    header('Location: login.php');$user = "polisask_sinavpaneli";
-
-    exit;$pass = "Ankara2024++";
+    exit;secureSessionStart();}
 
 }
 
-try {
 
-$pdo = getDbConnection();    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
 
-$page_title = "İstatistikler";    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+$pdo = getDbConnection();
 
-$admin_username = $_SESSION['admin_username'] ?? 'Admin';} catch (PDOException $e) {
+$page_title = "İstatistikler";// Session kontrolü$host = "localhost";
 
-    die("Veritabanı bağlantısı hatası: " . $e->getMessage());
+$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';
 
-// Seçili packageName}
+if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {$db     = "polisask_sinavpaneli";
 
-$selectedPackage = $_GET['packageName'] ?? '';
+// Seçili packageName
 
-// Seçili packageName'i al
+$selectedPackage = isset($_GET['packageName']) ? $_GET['packageName'] : '';    header('Location: login.php');$user = "polisask_sinavpaneli";
 
-// Package listesi$selectedPackage = $_GET['packageName'] ?? '';
+
+
+// Package listesi    exit;$pass = "Ankara2024++";
 
 $packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
 
-$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);// Mevcut packageName'leri al
-
-$packageQuery = "SELECT DISTINCT packageName FROM user_statistics";
-
-// Genel istatistikler$packageStmt = $pdo->query($packageQuery);
-
-$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);
-
-$params = $selectedPackage ? [':package' => $selectedPackage] : [];
-
-// Son 30 günü al
-
-// Bugün$endDate = new DateTime();
-
-$todayQuery = "SELECT $startDate = (clone $endDate)->modify('-30 days');
-
-    COUNT(*) as total_logins,
-
-    COUNT(DISTINCT device_id) as unique_users// Tarih formatlama fonksiyonu
-
-FROM user_statistics function formatTurkishDate($date, $format = '%d.%m.%Y %A') {
-
-WHERE DATE(login_time) = CURDATE() {$whereClause}";    setlocale(LC_TIME, 'tr_TR.UTF-8');
-
-$todayStmt = $pdo->prepare($todayQuery);    $timestamp = strtotime($date);
-
-$todayStmt->execute($params);    return strftime($format, $timestamp);
-
-$today = $todayStmt->fetch(PDO::FETCH_ASSOC);}
+$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);}
 
 
 
-// Dün// Fark hesaplama fonksiyonu
+// Genel istatistiklertry {
 
-$yesterdayQuery = "SELECT function calculateDifference($current, $previous) {
+$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";
 
-    COUNT(*) as total_logins,    if ($previous == 0) return 0;
+$params = $selectedPackage ? array(':package' => $selectedPackage) : array();$pdo = getDbConnection();    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4", $user, $pass);
 
-    COUNT(DISTINCT device_id) as unique_users    return $current - $previous;
 
-FROM user_statistics }
 
-WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) {$whereClause}";
+// Bugün$page_title = "İstatistikler";    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
-$yesterdayStmt = $pdo->prepare($yesterdayQuery);// ** GÜNLÜK İSTATİSTİKLER **
+$todayQuery = "SELECT 
 
-$yesterdayStmt->execute($params);$dailyQuery = "SELECT
-
-$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);    DATE(login_time) AS day,
-
-    COUNT(*) AS total_logins,
-
-// Bu hafta    COUNT(DISTINCT device_id) AS unique_users,
-
-$thisWeekQuery = "SELECT     COUNT(DISTINCT CASE WHEN NOT EXISTS (
-
-    COUNT(*) as total_logins,        SELECT 1 FROM user_statistics us2
-
-    COUNT(DISTINCT device_id) as unique_users        WHERE us2.device_id = us.device_id
-
-FROM user_statistics         AND us2.login_time < us.login_time
-
-WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) {$whereClause}";    ) THEN us.device_id END) AS new_users
-
-$thisWeekStmt = $pdo->prepare($thisWeekQuery);FROM user_statistics us
-
-$thisWeekStmt->execute($params);WHERE (:packageName = '' OR packageName = :packageName)
-
-$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);AND DATE(login_time) BETWEEN :startDate AND :endDate
-
-GROUP BY DATE(login_time)
-
-// Bu ayORDER BY DATE(login_time) DESC";
-
-$thisMonthQuery = "SELECT 
-
-    COUNT(*) as total_logins,$dailyStmt = $pdo->prepare($dailyQuery);
-
-    COUNT(DISTINCT device_id) as unique_users$dailyStmt->execute(['packageName' => $selectedPackage, 'startDate' => $startDate->format('Y-m-d'), 'endDate' => $endDate->format('Y-m-d')]);
-
-FROM user_statistics $dailyStatistics = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);
-
-WHERE YEAR(login_time) = YEAR(CURDATE()) AND MONTH(login_time) = MONTH(CURDATE()) {$whereClause}";
-
-$thisMonthStmt = $pdo->prepare($thisMonthQuery);// Günlük önceki gün kıyaslama için dizi
-
-$thisMonthStmt->execute($params);$dailyPreviousStats = [];
-
-$thisMonth = $thisMonthStmt->fetch(PDO::FETCH_ASSOC);foreach ($dailyStatistics as $key => $stat) {
-
-    if (isset($dailyStatistics[$key + 1])) {
-
-// Toplam        $dailyPreviousStats[$stat['day']] = $dailyStatistics[$key + 1];
-
-$totalQuery = "SELECT     }
-
-    COUNT(*) as total_logins,}
+    COUNT(*) as total_logins,$admin_username = $_SESSION['admin_username'] ?? 'Admin';} catch (PDOException $e) {
 
     COUNT(DISTINCT device_id) as unique_users
 
-FROM user_statistics {$whereClause}";// ** HAFTALIK İSTATİSTİKLER **
+FROM user_statistics     die("Veritabanı bağlantısı hatası: " . $e->getMessage());
 
-$totalStmt = $pdo->prepare($totalQuery);$weeklyQuery = "SELECT
+WHERE DATE(login_time) = CURDATE() " . ($selectedPackage ? "AND packageName = :package" : "");
 
-$totalStmt->execute($params);    YEARWEEK(login_time, 3) AS week_no,
+$todayStmt = $pdo->prepare($todayQuery);// Seçili packageName}
 
-$total = $totalStmt->fetch(PDO::FETCH_ASSOC);    DATE_FORMAT(MIN(login_time), '%Y-%m-%d') AS start_date,
+$todayStmt->execute($params);
 
-    DATE_FORMAT(MAX(login_time), '%Y-%m-%d') AS end_date,
-
-// Son 30 günlük günlük istatistikler (grafik için)    COUNT(*) AS total_logins,
-
-$dailyQuery = "SELECT     COUNT(DISTINCT device_id) AS unique_users,
-
-    DATE(login_time) as day,    COUNT(DISTINCT CASE WHEN NOT EXISTS (
-
-    COUNT(*) as logins,        SELECT 1 FROM user_statistics us2
-
-    COUNT(DISTINCT device_id) as unique_users        WHERE us2.device_id = us.device_id
-
-FROM user_statistics         AND us2.login_time < us.login_time
-
-WHERE login_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) {$whereClause}    ) THEN us.device_id END) AS new_users
-
-GROUP BY DATE(login_time)FROM user_statistics us
-
-ORDER BY day ASC";WHERE (:packageName = '' OR packageName = :packageName)
-
-$dailyStmt = $pdo->prepare($dailyQuery);AND DATE(login_time) BETWEEN :startDate AND :endDate
-
-$dailyStmt->execute($params);GROUP BY YEARWEEK(login_time, 3)
-
-$dailyData = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);ORDER BY YEARWEEK(login_time, 3) DESC";
+$today = $todayStmt->fetch(PDO::FETCH_ASSOC);$selectedPackage = $_GET['packageName'] ?? '';
 
 
 
-// Grafik verileri için JSON$weeklyStmt = $pdo->prepare($weeklyQuery);
+// Dün// Seçili packageName'i al
 
-$chartLabels = [];$weeklyStmt->execute(['packageName' => $selectedPackage, 'startDate' => $startDate->format('Y-m-d'), 'endDate' => $endDate->format('Y-m-d')]);
+$yesterdayQuery = "SELECT 
 
-$chartLogins = [];$weeklyStatistics = $weeklyStmt->fetchAll(PDO::FETCH_ASSOC);
+    COUNT(*) as total_logins,// Package listesi$selectedPackage = $_GET['packageName'] ?? '';
 
-$chartUsers = [];
+    COUNT(DISTINCT device_id) as unique_users
 
-foreach($dailyData as $row) {// Haftalık önceki hafta kıyaslama fonksiyonu
+FROM user_statistics $packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
 
-    $chartLabels[] = date('d M', strtotime($row['day']));function getPreviousWeekStats(&$weeklyStatistics, $currentWeekNo) {
+WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) " . ($selectedPackage ? "AND packageName = :package" : "");
 
-    $chartLogins[] = $row['logins'];    foreach ($weeklyStatistics as $stat) {
+$yesterdayStmt = $pdo->prepare($yesterdayQuery);$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);// Mevcut packageName'leri al
 
-    $chartUsers[] = $row['unique_users'];        if ($stat['week_no'] == $currentWeekNo) {
+$yesterdayStmt->execute($params);
 
-}            $currentIndex = array_search($stat, $weeklyStatistics);
+$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);$packageQuery = "SELECT DISTINCT packageName FROM user_statistics";
 
-?>            if (isset($weeklyStatistics[$currentIndex + 1])) {
 
-<!DOCTYPE html>                return $weeklyStatistics[$currentIndex + 1];
 
-<html lang="tr">            }
+// Bu hafta// Genel istatistikler$packageStmt = $pdo->query($packageQuery);
 
-<head>            break;
+$thisWeekQuery = "SELECT 
 
-    <meta charset="UTF-8">        }
+    COUNT(*) as total_logins,$whereClause = $selectedPackage ? "WHERE packageName = :package" : "";$packages = $packageStmt->fetchAll(PDO::FETCH_COLUMN);
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">    }
+    COUNT(DISTINCT device_id) as unique_users
 
-    <title><?php echo htmlspecialchars($page_title); ?> - Admin Panel</title>    return null;
+FROM user_statistics $params = $selectedPackage ? [':package' => $selectedPackage] : [];
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">}
+WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) " . ($selectedPackage ? "AND packageName = :package" : "");
+
+$thisWeekStmt = $pdo->prepare($thisWeekQuery);// Son 30 günü al
+
+$thisWeekStmt->execute($params);
+
+$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);// Bugün$endDate = new DateTime();
+
+
+
+// Bu ay$todayQuery = "SELECT $startDate = (clone $endDate)->modify('-30 days');
+
+$thisMonthQuery = "SELECT 
+
+    COUNT(*) as total_logins,    COUNT(*) as total_logins,
+
+    COUNT(DISTINCT device_id) as unique_users
+
+FROM user_statistics     COUNT(DISTINCT device_id) as unique_users// Tarih formatlama fonksiyonu
+
+WHERE YEAR(login_time) = YEAR(CURDATE()) AND MONTH(login_time) = MONTH(CURDATE()) " . ($selectedPackage ? "AND packageName = :package" : "");
+
+$thisMonthStmt = $pdo->prepare($thisMonthQuery);FROM user_statistics function formatTurkishDate($date, $format = '%d.%m.%Y %A') {
+
+$thisMonthStmt->execute($params);
+
+$thisMonth = $thisMonthStmt->fetch(PDO::FETCH_ASSOC);WHERE DATE(login_time) = CURDATE() {$whereClause}";    setlocale(LC_TIME, 'tr_TR.UTF-8');
+
+
+
+// Toplam$todayStmt = $pdo->prepare($todayQuery);    $timestamp = strtotime($date);
+
+$totalQuery = "SELECT 
+
+    COUNT(*) as total_logins,$todayStmt->execute($params);    return strftime($format, $timestamp);
+
+    COUNT(DISTINCT device_id) as unique_users
+
+FROM user_statistics " . $whereClause;$today = $todayStmt->fetch(PDO::FETCH_ASSOC);}
+
+$totalStmt = $pdo->prepare($totalQuery);
+
+$totalStmt->execute($params);
+
+$total = $totalStmt->fetch(PDO::FETCH_ASSOC);
+
+// Dün// Fark hesaplama fonksiyonu
+
+// Son 30 günlük günlük istatistikler
+
+$dailyQuery = "SELECT $yesterdayQuery = "SELECT function calculateDifference($current, $previous) {
+
+    DATE(login_time) as day,
+
+    COUNT(*) as logins,    COUNT(*) as total_logins,    if ($previous == 0) return 0;
+
+    COUNT(DISTINCT device_id) as unique_users
+
+FROM user_statistics     COUNT(DISTINCT device_id) as unique_users    return $current - $previous;
+
+WHERE login_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) " . ($selectedPackage ? "AND packageName = :package" : "") . "
+
+GROUP BY DATE(login_time)FROM user_statistics }
+
+ORDER BY day ASC";
+
+$dailyStmt = $pdo->prepare($dailyQuery);WHERE DATE(login_time) = DATE_SUB(CURDATE(), INTERVAL 1 DAY) {$whereClause}";
+
+$dailyStmt->execute($params);
+
+$dailyData = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);$yesterdayStmt = $pdo->prepare($yesterdayQuery);// ** GÜNLÜK İSTATİSTİKLER **
+
+
+
+// Grafik verileri$yesterdayStmt->execute($params);$dailyQuery = "SELECT
+
+$chartLabels = array();
+
+$chartLogins = array();$yesterday = $yesterdayStmt->fetch(PDO::FETCH_ASSOC);    DATE(login_time) AS day,
+
+$chartUsers = array();
+
+foreach($dailyData as $row) {    COUNT(*) AS total_logins,
+
+    $chartLabels[] = date('d M', strtotime($row['day']));
+
+    $chartLogins[] = $row['logins'];// Bu hafta    COUNT(DISTINCT device_id) AS unique_users,
+
+    $chartUsers[] = $row['unique_users'];
+
+}$thisWeekQuery = "SELECT     COUNT(DISTINCT CASE WHEN NOT EXISTS (
+
+?>
+
+<!DOCTYPE html>    COUNT(*) as total_logins,        SELECT 1 FROM user_statistics us2
+
+<html lang="tr">
+
+<head>    COUNT(DISTINCT device_id) as unique_users        WHERE us2.device_id = us.device_id
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">FROM user_statistics         AND us2.login_time < us.login_time
+
+    <title>İstatistikler - Admin Panel</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">WHERE YEARWEEK(login_time, 1) = YEARWEEK(CURDATE(), 1) {$whereClause}";    ) THEN us.device_id END) AS new_users
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">$thisWeekStmt = $pdo->prepare($thisWeekQuery);FROM user_statistics us
 
-    <link rel="stylesheet" href="assets/css/admin-style.css">// ** AYLIK İSTATİSTİKLER **
+    <link rel="stylesheet" href="assets/css/admin-style.css">
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>$monthlyQuery = "SELECT
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>$thisWeekStmt->execute($params);WHERE (:packageName = '' OR packageName = :packageName)
 
-</head>    DATE_FORMAT(login_time, '%Y-%m') AS month_year,
+</head>
 
-<body>    DATE_FORMAT(MIN(login_time), '%Y-%m-%d') AS start_date,
+<body>$thisWeek = $thisWeekStmt->fetch(PDO::FETCH_ASSOC);AND DATE(login_time) BETWEEN :startDate AND :endDate
 
-    <!-- Navbar -->    DATE_FORMAT(MAX(login_time), '%Y-%m-%d') AS end_date,
+    <!-- Navbar -->
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">    COUNT(*) AS total_logins,
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">GROUP BY DATE(login_time)
 
-        <div class="container-fluid">    COUNT(DISTINCT device_id) AS unique_users,
+        <div class="container-fluid">
 
-            <a class="navbar-brand" href="index.php">    COUNT(DISTINCT CASE WHEN NOT EXISTS (
+            <a class="navbar-brand" href="index.php">// Bu ayORDER BY DATE(login_time) DESC";
 
-                <i class="bi bi-shield-check"></i> Admin Panel        SELECT 1 FROM user_statistics us2
+                <i class="bi bi-shield-check"></i> Admin Panel
 
-            </a>        WHERE us2.device_id = us.device_id
+            </a>$thisMonthQuery = "SELECT 
 
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">        AND us2.login_time < us.login_time
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
 
-                <span class="navbar-toggler-icon"></span>    ) THEN us.device_id END) AS new_users
+                <span class="navbar-toggler-icon"></span>    COUNT(*) as total_logins,$dailyStmt = $pdo->prepare($dailyQuery);
 
-            </button>FROM user_statistics us
+            </button>
 
-            <div class="collapse navbar-collapse" id="navbarNav">WHERE (:packageName = '' OR packageName = :packageName)
+            <div class="collapse navbar-collapse" id="navbarNav">    COUNT(DISTINCT device_id) as unique_users$dailyStmt->execute(['packageName' => $selectedPackage, 'startDate' => $startDate->format('Y-m-d'), 'endDate' => $endDate->format('Y-m-d')]);
 
-                <ul class="navbar-nav me-auto">AND DATE(login_time) BETWEEN :startDate AND :endDate
+                <ul class="navbar-nav me-auto">
 
-                    <li class="nav-item">GROUP BY DATE_FORMAT(login_time, '%Y-%m')
+                    <li class="nav-item">FROM user_statistics $dailyStatistics = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);
 
-                        <a class="nav-link" href="index.php">ORDER BY DATE_FORMAT(login_time, '%Y-%m') DESC";
+                        <a class="nav-link" href="index.php">
 
-                            <i class="bi bi-speedometer2"></i> Dashboard
+                            <i class="bi bi-speedometer2"></i> DashboardWHERE YEAR(login_time) = YEAR(CURDATE()) AND MONTH(login_time) = MONTH(CURDATE()) {$whereClause}";
 
-                        </a>$monthlyStmt = $pdo->prepare($monthlyQuery);
+                        </a>
 
-                    </li>$monthlyStmt->execute(['packageName' => $selectedPackage, 'startDate' => $startDate->format('Y-m-d'), 'endDate' => $endDate->format('Y-m-d')]);
+                    </li>$thisMonthStmt = $pdo->prepare($thisMonthQuery);// Günlük önceki gün kıyaslama için dizi
 
-                    <li class="nav-item">$monthlyStatistics = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
+                    <li class="nav-item">
 
-                        <a class="nav-link" href="duyurular/">
+                        <a class="nav-link" href="duyurular/">$thisMonthStmt->execute($params);$dailyPreviousStats = [];
 
-                            <i class="bi bi-megaphone"></i> Duyurular// Aylık önceki ay kıyaslama fonksiyonu
+                            <i class="bi bi-megaphone"></i> Duyurular
 
-                        </a>function getPreviousMonthStats(&$monthlyStatistics, $currentMonthYear) {
+                        </a>$thisMonth = $thisMonthStmt->fetch(PDO::FETCH_ASSOC);foreach ($dailyStatistics as $key => $stat) {
 
-                    </li>    foreach ($monthlyStatistics as $stat) {
+                    </li>
 
-                    <li class="nav-item">        if ($stat['month_year'] == $currentMonthYear) {
+                    <li class="nav-item">    if (isset($dailyStatistics[$key + 1])) {
 
-                        <a class="nav-link active" href="istatistikler.php">            $currentIndex = array_search($stat, $monthlyStatistics);
+                        <a class="nav-link active" href="istatistikler.php">
 
-                            <i class="bi bi-graph-up"></i> İstatistikler            if (isset($monthlyStatistics[$currentIndex + 1])) {
+                            <i class="bi bi-graph-up"></i> İstatistikler// Toplam        $dailyPreviousStats[$stat['day']] = $dailyStatistics[$key + 1];
 
-                        </a>                return $monthlyStatistics[$currentIndex + 1];
+                        </a>
 
-                    </li>            }
+                    </li>$totalQuery = "SELECT     }
 
-                </ul>            break;
+                </ul>
 
-                <div class="d-flex align-items-center">        }
+                <div class="d-flex align-items-center">    COUNT(*) as total_logins,}
 
-                    <span class="text-white me-3">    }
+                    <span class="text-white me-3">
 
-                        <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?>    return null;
+                        <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username, ENT_QUOTES, 'UTF-8'); ?>    COUNT(DISTINCT device_id) as unique_users
 
-                    </span>}
+                    </span>
 
-                    <a href="logout.php" class="btn btn-outline-light btn-sm">
+                    <a href="logout.php" class="btn btn-outline-light btn-sm">FROM user_statistics {$whereClause}";// ** HAFTALIK İSTATİSTİKLER **
 
                         <i class="bi bi-box-arrow-right"></i> Çıkış
 
-                    </a>?>
+                    </a>$totalStmt = $pdo->prepare($totalQuery);$weeklyQuery = "SELECT
 
-                </div><!DOCTYPE html>
+                </div>
 
-            </div><html lang="tr">
+            </div>$totalStmt->execute($params);    YEARWEEK(login_time, 3) AS week_no,
 
-        </div><head>
+        </div>
 
-    </nav>    <meta charset="UTF-8">
+    </nav>$total = $totalStmt->fetch(PDO::FETCH_ASSOC);    DATE_FORMAT(MIN(login_time), '%Y-%m-%d') AS start_date,
 
-    <title>Admin Paneli - İstatistikler</title>
 
-    <!-- Main Content -->    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <div class="container-fluid py-4">    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <!-- Main Content -->    DATE_FORMAT(MAX(login_time), '%Y-%m-%d') AS end_date,
 
-        <div class="row mb-4">    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <div class="container-fluid py-4">
 
-            <div class="col-md-6">    <style>
+        <div class="row mb-4">// Son 30 günlük günlük istatistikler (grafik için)    COUNT(*) AS total_logins,
 
-                <h1 class="page-title">        .positive { color: green; font-weight: bold; }
+            <div class="col-md-6">
 
-                    <i class="bi bi-graph-up-arrow"></i> İstatistikler        .negative { color: red; font-weight: bold; }
+                <h1 class="page-title">$dailyQuery = "SELECT     COUNT(DISTINCT device_id) AS unique_users,
 
-                </h1>    </style>
+                    <i class="bi bi-graph-up-arrow"></i> İstatistikler
 
-            </div></head>
+                </h1>    DATE(login_time) as day,    COUNT(DISTINCT CASE WHEN NOT EXISTS (
 
-            <div class="col-md-6 text-end"><body class="bg-light">
+            </div>
+
+            <div class="col-md-6 text-end">    COUNT(*) as logins,        SELECT 1 FROM user_statistics us2
 
                 <form method="GET" class="d-inline-block">
 
-                    <select name="packageName" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()"><nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+                    <select name="packageName" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()">    COUNT(DISTINCT device_id) as unique_users        WHERE us2.device_id = us.device_id
 
-                        <option value="">Tüm Uygulamalar</option>    <div class="container-fluid">
+                        <option value="">Tüm Uygulamalar</option>
 
-                        <?php foreach($packages as $pkg): ?>        <a class="navbar-brand" href="../index.php">Admin Paneli</a>
+                        <?php foreach($packages as $pkg): ?>FROM user_statistics         AND us2.login_time < us.login_time
 
-                            <option value="<?php echo htmlspecialchars($pkg); ?>" <?php echo $selectedPackage === $pkg ? 'selected' : ''; ?>>        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                            <option value="<?php echo htmlspecialchars($pkg, ENT_QUOTES, 'UTF-8'); ?>" <?php echo $selectedPackage === $pkg ? 'selected' : ''; ?>>
 
-                                <?php echo htmlspecialchars($pkg); ?>            <span class="navbar-toggler-icon"></span>
+                                <?php echo htmlspecialchars($pkg, ENT_QUOTES, 'UTF-8'); ?>WHERE login_time >= DATE_SUB(CURDATE(), INTERVAL 30 DAY) {$whereClause}    ) THEN us.device_id END) AS new_users
 
-                            </option>        </button>
+                            </option>
 
-                        <?php endforeach; ?>        <div class="collapse navbar-collapse" id="navbarNav">
+                        <?php endforeach; ?>GROUP BY DATE(login_time)FROM user_statistics us
 
-                    </select>            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                    </select>
 
-                </form>                <li class="nav-item"><a class="nav-link" href="index.php">Talepler</a></li>
+                </form>ORDER BY day ASC";WHERE (:packageName = '' OR packageName = :packageName)
 
-            </div>                <li class="nav-item"><a class="nav-link" href="duyurular/index.php">Duyurular</a></li>
+            </div>
 
-        </div>                <li class="nav-item"><a class="nav-link active" href="../istatistikler.php">İstatistikler</a></li>
+        </div>$dailyStmt = $pdo->prepare($dailyQuery);AND DATE(login_time) BETWEEN :startDate AND :endDate
 
-            </ul>
 
-        <!-- İstatistik Kartları -->            <div class="d-flex">
 
-        <div class="row mb-4">                <a class="btn btn-outline-light" href="../logout.php">Çıkış Yap</a>
+        <!-- İstatistik Kartları -->$dailyStmt->execute($params);GROUP BY YEARWEEK(login_time, 3)
 
-            <!-- Bugün -->            </div>
+        <div class="row mb-4">
 
-            <div class="col-lg-3 col-md-6 mb-3">        </div>
+            <!-- Bugün -->$dailyData = $dailyStmt->fetchAll(PDO::FETCH_ASSOC);ORDER BY YEARWEEK(login_time, 3) DESC";
 
-                <div class="stat-card">    </div>
+            <div class="col-lg-3 col-md-6 mb-3">
 
-                    <div class="stat-card-icon bg-primary"></nav>
+                <div class="stat-card">
 
-                        <i class="bi bi-calendar-day"></i>
+                    <div class="stat-card-icon bg-primary">
 
-                    </div><div class="container mt-4">
+                        <i class="bi bi-calendar-day"></i>// Grafik verileri için JSON$weeklyStmt = $pdo->prepare($weeklyQuery);
 
-                    <div class="stat-card-info">    <h5 class="text-center">Son 30 Günlük İstatistikler</h5>
+                    </div>
+
+                    <div class="stat-card-info">$chartLabels = [];$weeklyStmt->execute(['packageName' => $selectedPackage, 'startDate' => $startDate->format('Y-m-d'), 'endDate' => $endDate->format('Y-m-d')]);
 
                         <div class="stat-card-title">Bugün</div>
 
-                        <div class="stat-card-value"><?php echo number_format($today['total_logins']); ?></div>    <form method="GET" class="mb-3">
+                        <div class="stat-card-value"><?php echo number_format($today['total_logins']); ?></div>$chartLogins = [];$weeklyStatistics = $weeklyStmt->fetchAll(PDO::FETCH_ASSOC);
 
-                        <div class="stat-card-change text-muted">        <label for="packageName" class="form-label">Uygulama Seç:</label>
+                        <div class="stat-card-change text-muted">
 
-                            <small><?php echo number_format($today['unique_users']); ?> benzersiz kullanıcı</small>        <select name="packageName" id="packageName" class="form-select" onchange="this.form.submit()">
+                            <small><?php echo number_format($today['unique_users']); ?> benzersiz kullanıcı</small>$chartUsers = [];
 
-                        </div>            <option value="">Tümü</option>
+                        </div>
 
-                    </div>            <?php foreach ($packages as $package): ?>
+                    </div>foreach($dailyData as $row) {// Haftalık önceki hafta kıyaslama fonksiyonu
+
+                </div>
+
+            </div>    $chartLabels[] = date('d M', strtotime($row['day']));function getPreviousWeekStats(&$weeklyStatistics, $currentWeekNo) {
+
+
+
+            <!-- Dün -->    $chartLogins[] = $row['logins'];    foreach ($weeklyStatistics as $stat) {
+
+            <div class="col-lg-3 col-md-6 mb-3">
+
+                <div class="stat-card">    $chartUsers[] = $row['unique_users'];        if ($stat['week_no'] == $currentWeekNo) {
+
+                    <div class="stat-card-icon bg-info">
+
+                        <i class="bi bi-calendar-minus"></i>}            $currentIndex = array_search($stat, $weeklyStatistics);
+
+                    </div>
+
+                    <div class="stat-card-info">?>            if (isset($weeklyStatistics[$currentIndex + 1])) {
+
+                        <div class="stat-card-title">Dün</div>
+
+                        <div class="stat-card-value"><?php echo number_format($yesterday['total_logins']); ?></div><!DOCTYPE html>                return $weeklyStatistics[$currentIndex + 1];
+
+                        <div class="stat-card-change text-muted">
+
+                            <small><?php echo number_format($yesterday['unique_users']); ?> benzersiz kullanıcı</small><html lang="tr">            }
+
+                        </div>
+
+                    </div><head>            break;
+
+                </div>
+
+            </div>    <meta charset="UTF-8">        }
+
+
+
+            <!-- Bu Hafta -->    <meta name="viewport" content="width=device-width, initial-scale=1.0">    }
+
+            <div class="col-lg-3 col-md-6 mb-3">
+
+                <div class="stat-card">    <title><?php echo htmlspecialchars($page_title); ?> - Admin Panel</title>    return null;
+
+                    <div class="stat-card-icon bg-success">
+
+                        <i class="bi bi-calendar-week"></i>    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">}
+
+                    </div>
+
+                    <div class="stat-card-info">    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+                        <div class="stat-card-title">Bu Hafta</div>
+
+                        <div class="stat-card-value"><?php echo number_format($thisWeek['total_logins']); ?></div>    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+                        <div class="stat-card-change text-muted">
+
+                            <small><?php echo number_format($thisWeek['unique_users']); ?> benzersiz kullanıcı</small>    <link rel="stylesheet" href="assets/css/admin-style.css">// ** AYLIK İSTATİSTİKLER **
+
+                        </div>
+
+                    </div>    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>$monthlyQuery = "SELECT
+
+                </div>
+
+            </div></head>    DATE_FORMAT(login_time, '%Y-%m') AS month_year,
+
+
+
+            <!-- Bu Ay --><body>    DATE_FORMAT(MIN(login_time), '%Y-%m-%d') AS start_date,
+
+            <div class="col-lg-3 col-md-6 mb-3">
+
+                <div class="stat-card">    <!-- Navbar -->    DATE_FORMAT(MAX(login_time), '%Y-%m-%d') AS end_date,
+
+                    <div class="stat-card-icon bg-warning">
+
+                        <i class="bi bi-calendar-month"></i>    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">    COUNT(*) AS total_logins,
+
+                    </div>
+
+                    <div class="stat-card-info">        <div class="container-fluid">    COUNT(DISTINCT device_id) AS unique_users,
+
+                        <div class="stat-card-title">Bu Ay</div>
+
+                        <div class="stat-card-value"><?php echo number_format($thisMonth['total_logins']); ?></div>            <a class="navbar-brand" href="index.php">    COUNT(DISTINCT CASE WHEN NOT EXISTS (
+
+                        <div class="stat-card-change text-muted">
+
+                            <small><?php echo number_format($thisMonth['unique_users']); ?> benzersiz kullanıcı</small>                <i class="bi bi-shield-check"></i> Admin Panel        SELECT 1 FROM user_statistics us2
+
+                        </div>
+
+                    </div>            </a>        WHERE us2.device_id = us.device_id
+
+                </div>
+
+            </div>            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">        AND us2.login_time < us.login_time
+
+        </div>
+
+                <span class="navbar-toggler-icon"></span>    ) THEN us.device_id END) AS new_users
+
+        <!-- Toplam İstatistikler -->
+
+        <div class="row mb-4">            </button>FROM user_statistics us
+
+            <div class="col-md-6 mb-3">
+
+                <div class="card">            <div class="collapse navbar-collapse" id="navbarNav">WHERE (:packageName = '' OR packageName = :packageName)
+
+                    <div class="card-body text-center">
+
+                        <h3 class="text-primary"><?php echo number_format($total['total_logins']); ?></h3>                <ul class="navbar-nav me-auto">AND DATE(login_time) BETWEEN :startDate AND :endDate
+
+                        <p class="text-muted mb-0">Toplam Giriş</p>
+
+                    </div>                    <li class="nav-item">GROUP BY DATE_FORMAT(login_time, '%Y-%m')
+
+                </div>
+
+            </div>                        <a class="nav-link" href="index.php">ORDER BY DATE_FORMAT(login_time, '%Y-%m') DESC";
+
+            <div class="col-md-6 mb-3">
+
+                <div class="card">                            <i class="bi bi-speedometer2"></i> Dashboard
+
+                    <div class="card-body text-center">
+
+                        <h3 class="text-success"><?php echo number_format($total['unique_users']); ?></h3>                        </a>$monthlyStmt = $pdo->prepare($monthlyQuery);
+
+                        <p class="text-muted mb-0">Toplam Benzersiz Kullanıcı</p>
+
+                    </div>                    </li>$monthlyStmt->execute(['packageName' => $selectedPackage, 'startDate' => $startDate->format('Y-m-d'), 'endDate' => $endDate->format('Y-m-d')]);
+
+                </div>
+
+            </div>                    <li class="nav-item">$monthlyStatistics = $monthlyStmt->fetchAll(PDO::FETCH_ASSOC);
+
+        </div>
+
+                        <a class="nav-link" href="duyurular/">
+
+        <!-- Grafik -->
+
+        <div class="row mb-4">                            <i class="bi bi-megaphone"></i> Duyurular// Aylık önceki ay kıyaslama fonksiyonu
+
+            <div class="col-12">
+
+                <div class="card">                        </a>function getPreviousMonthStats(&$monthlyStatistics, $currentMonthYear) {
+
+                    <div class="card-header">
+
+                        <h5 class="mb-0"><i class="bi bi-graph-up"></i> Son 30 Gün Aktivitesi</h5>                    </li>    foreach ($monthlyStatistics as $stat) {
+
+                    </div>
+
+                    <div class="card-body">                    <li class="nav-item">        if ($stat['month_year'] == $currentMonthYear) {
+
+                        <canvas id="activityChart" height="80"></canvas>
+
+                    </div>                        <a class="nav-link active" href="istatistikler.php">            $currentIndex = array_search($stat, $monthlyStatistics);
+
+                </div>
+
+            </div>                            <i class="bi bi-graph-up"></i> İstatistikler            if (isset($monthlyStatistics[$currentIndex + 1])) {
+
+        </div>
+
+                        </a>                return $monthlyStatistics[$currentIndex + 1];
+
+        <!-- Günlük Tablo -->
+
+        <div class="row">                    </li>            }
+
+            <div class="col-12">
+
+                <div class="card">                </ul>            break;
+
+                    <div class="card-header">
+
+                        <h5 class="mb-0"><i class="bi bi-table"></i> Günlük Detaylar (Son 30 Gün)</h5>                <div class="d-flex align-items-center">        }
+
+                    </div>
+
+                    <div class="card-body">                    <span class="text-white me-3">    }
+
+                        <div class="table-responsive">
+
+                            <table class="table table-hover">                        <i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?>    return null;
+
+                                <thead>
+
+                                    <tr>                    </span>}
+
+                                        <th>Tarih</th>
+
+                                        <th>Gün</th>                    <a href="logout.php" class="btn btn-outline-light btn-sm">
+
+                                        <th>Toplam Giriş</th>
+
+                                        <th>Benzersiz Kullanıcı</th>                        <i class="bi bi-box-arrow-right"></i> Çıkış
+
+                                        <th>Ortalama Giriş/Kullanıcı</th>
+
+                                    </tr>                    </a>?>
+
+                                </thead>
+
+                                <tbody>                </div><!DOCTYPE html>
+
+                                    <?php if(count($dailyData) > 0): ?>
+
+                                        <?php             </div><html lang="tr">
+
+                                        $reversedData = array_reverse($dailyData);
+
+                                        foreach($reversedData as $row):         </div><head>
+
+                                            $avgPerUser = $row['unique_users'] > 0 ? round($row['logins'] / $row['unique_users'], 2) : 0;
+
+                                            $dayNames = array('Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz');    </nav>    <meta charset="UTF-8">
+
+                                            $dayNum = date('N', strtotime($row['day'])) - 1;
+
+                                            $dayName = $dayNames[$dayNum];    <title>Admin Paneli - İstatistikler</title>
+
+                                        ?>
+
+                                        <tr>    <!-- Main Content -->    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+                                            <td><?php echo date('d.m.Y', strtotime($row['day'])); ?></td>
+
+                                            <td><span class="badge bg-light text-dark"><?php echo $dayName; ?></span></td>    <div class="container-fluid py-4">    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+
+                                            <td><strong><?php echo number_format($row['logins']); ?></strong></td>
+
+                                            <td><?php echo number_format($row['unique_users']); ?></td>        <div class="row mb-4">    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+                                            <td><?php echo number_format($avgPerUser, 2); ?></td>
+
+                                        </tr>            <div class="col-md-6">    <style>
+
+                                        <?php endforeach; ?>
+
+                                    <?php else: ?>                <h1 class="page-title">        .positive { color: green; font-weight: bold; }
+
+                                        <tr>
+
+                                            <td colspan="5" class="text-center text-muted">Henüz veri yok</td>                    <i class="bi bi-graph-up-arrow"></i> İstatistikler        .negative { color: red; font-weight: bold; }
+
+                                        </tr>
+
+                                    <?php endif; ?>                </h1>    </style>
+
+                                </tbody>
+
+                            </table>            </div></head>
+
+                        </div>
+
+                    </div>            <div class="col-md-6 text-end"><body class="bg-light">
+
+                </div>
+
+            </div>                <form method="GET" class="d-inline-block">
+
+        </div>
+
+    </div>                    <select name="packageName" class="form-select form-select-sm" style="width: auto; display: inline-block;" onchange="this.form.submit()"><nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+
+
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>                        <option value="">Tüm Uygulamalar</option>    <div class="container-fluid">
+
+    <script>
+
+        // Grafik                        <?php foreach($packages as $pkg): ?>        <a class="navbar-brand" href="../index.php">Admin Paneli</a>
+
+        var ctx = document.getElementById('activityChart').getContext('2d');
+
+        new Chart(ctx, {                            <option value="<?php echo htmlspecialchars($pkg); ?>" <?php echo $selectedPackage === $pkg ? 'selected' : ''; ?>>        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+
+            type: 'line',
+
+            data: {                                <?php echo htmlspecialchars($pkg); ?>            <span class="navbar-toggler-icon"></span>
+
+                labels: <?php echo json_encode($chartLabels); ?>,
+
+                datasets: [                            </option>        </button>
+
+                    {
+
+                        label: 'Toplam Giriş',                        <?php endforeach; ?>        <div class="collapse navbar-collapse" id="navbarNav">
+
+                        data: <?php echo json_encode($chartLogins); ?>,
+
+                        borderColor: 'rgb(102, 126, 234)',                    </select>            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+
+                        backgroundColor: 'rgba(102, 126, 234, 0.1)',
+
+                        tension: 0.3,                </form>                <li class="nav-item"><a class="nav-link" href="index.php">Talepler</a></li>
+
+                        fill: true
+
+                    },            </div>                <li class="nav-item"><a class="nav-link" href="duyurular/index.php">Duyurular</a></li>
+
+                    {
+
+                        label: 'Benzersiz Kullanıcı',        </div>                <li class="nav-item"><a class="nav-link active" href="../istatistikler.php">İstatistikler</a></li>
+
+                        data: <?php echo json_encode($chartUsers); ?>,
+
+                        borderColor: 'rgb(40, 167, 69)',            </ul>
+
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+
+                        tension: 0.3,        <!-- İstatistik Kartları -->            <div class="d-flex">
+
+                        fill: true
+
+                    }        <div class="row mb-4">                <a class="btn btn-outline-light" href="../logout.php">Çıkış Yap</a>
+
+                ]
+
+            },            <!-- Bugün -->            </div>
+
+            options: {
+
+                responsive: true,            <div class="col-lg-3 col-md-6 mb-3">        </div>
+
+                maintainAspectRatio: true,
+
+                plugins: {                <div class="stat-card">    </div>
+
+                    legend: {
+
+                        position: 'top'                    <div class="stat-card-icon bg-primary"></nav>
+
+                    },
+
+                    tooltip: {                        <i class="bi bi-calendar-day"></i>
+
+                        mode: 'index',
+
+                        intersect: false                    </div><div class="container mt-4">
+
+                    }
+
+                },                    <div class="stat-card-info">    <h5 class="text-center">Son 30 Günlük İstatistikler</h5>
+
+                scales: {
+
+                    y: {                        <div class="stat-card-title">Bugün</div>
+
+                        beginAtZero: true,
+
+                        ticks: {                        <div class="stat-card-value"><?php echo number_format($today['total_logins']); ?></div>    <form method="GET" class="mb-3">
+
+                            precision: 0
+
+                        }                        <div class="stat-card-change text-muted">        <label for="packageName" class="form-label">Uygulama Seç:</label>
+
+                    }
+
+                }                            <small><?php echo number_format($today['unique_users']); ?> benzersiz kullanıcı</small>        <select name="packageName" id="packageName" class="form-select" onchange="this.form.submit()">
+
+            }
+
+        });                        </div>            <option value="">Tümü</option>
+
+    </script>
+
+</body>                    </div>            <?php foreach ($packages as $package): ?>
+
+</html>
 
                 </div>                <option value="<?= htmlspecialchars($package) ?>" <?= $package == $selectedPackage ? 'selected' : '' ?>>
 
