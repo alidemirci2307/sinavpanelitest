@@ -1,24 +1,21 @@
 <?php
-session_start();
-if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header('Location: ../login.php');
-    exit;
-}
+require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../../db.php';
+require_once __DIR__ . '/../../security.php';
 
-$host = "localhost";
-$db   = "polisask_sinavpaneli";
-$user = "polisask_sinavpaneli";
-$pass = "Ankara2024++";
+secureSessionStart();
 
-try {
-    $pdo = new PDO("mysql:host=$host;dbname=$db;charset=utf8mb4",$user,$pass);
-    $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-} catch(PDOException $e) {
-    die("Veritabanı bağlantı hatası: " . $e->getMessage());
-}
+$pdo = getDbConnection();
+
+// Sayfa ayarları
+$page_title = "Duyurular Yönetimi";
 
 // Toplu güncelleme işlemi
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action'])) {
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {
+    if (!verifyCSRFToken($_POST['csrf_token'])) {
+        die("Güvenlik hatası!");
+    }
+    
     $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);
     $action = $_POST['action'];
 
@@ -32,160 +29,257 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isse
 
     if($status && !empty($duyuru_ids)) {
         try {
-            // Hazırlanmış ifadeler ile güvenli toplu güncelleme
             $in  = str_repeat('?,', count($duyuru_ids) - 1) . '?';
             $stmt = $pdo->prepare("UPDATE duyurular SET status = ? WHERE id IN ($in)");
             $params = array_merge([$status], $duyuru_ids);
             $stmt->execute($params);
-            header('Location: index.php');
+            header('Location: index.php?success=1');
             exit;
         } catch(PDOException $e) {
-            die("Toplu güncelleme sırasında bir hata oluştu: " . $e->getMessage());
+            error_log("Bulk update error: " . $e->getMessage());
+            $error = "Toplu güncelleme sırasında bir hata oluştu.";
         }
     }
 }
 
-// Önceliğe göre sıralama (yüksek öncelik ilk gelir)
+// İstatistikler
+$stmt_stats = $pdo->query("SELECT 
+    COUNT(*) as total,
+    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive
+FROM duyurular");
+$stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);
+
+// Önceliğe göre sıralama
 $stmt = $pdo->query("SELECT * FROM duyurular ORDER BY priority DESC, created_at DESC");
 $duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);
-?>
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-    <meta charset="UTF-8">
-    <title>Admin Paneli - Duyurular</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <style>
-        .high-priority {
-            border: 2px solid #ffc107;
-        }
-        @media (max-width: 768px) {
-            table {
-                font-size: 12px;
-            }
-            .btn {
-                font-size: 12px;
-                padding: 5px 10px;
-            }
-        }
-        @media (max-width: 576px) {
-            .table {
-                display: block;
-                overflow-x: auto;
-                white-space: nowrap;
-            }
-            table {
-                font-size: 10px;
-            }
-            .btn {
-                font-size: 10px;
-                padding: 4px 8px;
-            }
-        }
-    </style>
-</head>
-<body class="bg-light">
 
-<!-- Navbar -->
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
-    <div class="container-fluid">
-        <a class="navbar-brand" href="../index.php">Admin Paneli</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-            <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarNav">
-            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <li class="nav-item"><a class="nav-link" href="../index.php">Talepler</a></li>
-                <li class="nav-item"><a class="nav-link active" href="index.php">Duyurular</a></li>
+// Header
+include __DIR__ . '/../includes/header.php';
+?>
                 <li class="nav-item"><a class="nav-link" href="../istatistikler.php">İstatistikler</a></li>
-            </ul>
-            <div class="d-flex">
-                <a class="btn btn-outline-light" href="../logout.php">Çıkış Yap</a>
+            
+<!-- Başarı Mesajı -->
+<?php if(isset($_GET['success'])): ?>
+<div class="alert alert-success alert-dismissible fade show">
+    <i class="bi bi-check-circle-fill me-2"></i>İşlem başarıyla tamamlandı!
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
+<?php if(isset($error)): ?>
+<div class="alert alert-danger alert-dismissible fade show">
+    <i class="bi bi-exclamation-triangle-fill me-2"></i><?= escapeHtml($error) ?>
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+</div>
+<?php endif; ?>
+
+<!-- İstatistik Kartları -->
+<div class="row mb-4">
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="stat-card">
+            <div class="stat-card-title">
+                <i class="bi bi-megaphone-fill me-2"></i>Toplam Duyuru
+            </div>
+            <div class="stat-card-value"><?= number_format($stats['total']) ?></div>
+            <div class="stat-card-change text-muted">
+                <i class="bi bi-list-ul"></i> Tüm duyurular
             </div>
         </div>
     </div>
-</nav>
-
-<!-- Main Content -->
-<div class="container mt-4">
-    <h3>Duyurular</h3>
-    <a href="add.php" class="btn btn-success mb-3">Yeni Duyuru Ekle</a>
-    <form method="post" action="">
-        <div class="mb-3">
-            <button type="submit" name="action" value="activate" class="btn btn-primary">Seçilenleri Aktif Yap</button>
-            <button type="submit" name="action" value="deactivate" class="btn btn-secondary">Seçilenleri Pasif Yap</button>
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="stat-card" style="border-left-color: var(--success-color);">
+            <div class="stat-card-title">
+                <i class="bi bi-check-circle-fill me-2"></i>Aktif Duyuru
+            </div>
+            <div class="stat-card-value text-success"><?= number_format($stats['active']) ?></div>
+            <div class="stat-card-change text-muted">
+                <i class="bi bi-eye-fill"></i> Yayında
+            </div>
         </div>
+    </div>
+    <div class="col-md-4 col-sm-6 mb-3">
+        <div class="stat-card" style="border-left-color: var(--secondary-color);">
+            <div class="stat-card-title">
+                <i class="bi bi-x-circle-fill me-2"></i>Pasif Duyuru
+            </div>
+            <div class="stat-card-value text-secondary"><?= number_format($stats['inactive']) ?></div>
+            <div class="stat-card-change text-muted">
+                <i class="bi bi-eye-slash-fill"></i> Devre dışı
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Sayfa Başlığı ve Butonlar -->
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1 class="page-title">
+        <i class="bi bi-megaphone-fill"></i>
+        <span>
+            Duyurular
+            <small class="page-subtitle d-block">Uygulama duyurularınızı yönetin</small>
+        </span>
+    </h1>
+    <div>
+        <a href="add.php" class="btn btn-success">
+            <i class="bi bi-plus-circle-fill"></i> Yeni Duyuru Ekle
+        </a>
+    </div>
+</div>
+
+<!-- Toplu İşlem Formu -->
+<form method="post" id="bulkForm">
+    <input type="hidden" name="csrf_token" value="<?= escapeHtml(generateCSRFToken()); ?>">
+    
+    <!-- Toplu İşlem Butonları -->
+    <div class="mb-3 d-flex gap-2 flex-wrap">
+        <button type="submit" name="action" value="activate" class="btn btn-success btn-sm" onclick="return confirmBulkAction('aktif')">
+            <i class="bi bi-check-circle"></i> Seçilenleri Aktif Et
+        </button>
+        <button type="submit" name="action" value="deactivate" class="btn btn-warning btn-sm" onclick="return confirmBulkAction('pasif')">
+            <i class="bi bi-x-circle"></i> Seçilenleri Pasif Et
+        </button>
+        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="location.reload()">
+            <i class="bi bi-arrow-clockwise"></i> Yenile
+        </button>
+    </div>
+
+    <!-- Duyurular Tablosu -->
+    <div class="table-wrapper">
         <div class="table-responsive">
-            <table class="table table-bordered table-striped table-hover align-middle">
-                <thead class="table-dark">
+            <table class="table table-hover align-middle">
+                <thead>
                     <tr>
-                        <th><input type="checkbox" id="selectAll"></th>
-                        <th>ID</th>
-                        <th>Tip</th>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                        </th>
+                        <th style="width: 60px;">ID</th>
+                        <th style="width: 100px;">Tip</th>
                         <th>Başlık</th>
                         <th>İçerik</th>
-                        <th>URL</th>
-                        <th>Durum</th>
-                        <th>Öncelik</th>
-                        <th>App Package</th>
-                        <th>Oluşturulma Tarihi</th>
-                        <th>Güncellenme Tarihi</th>
-                        <th>İşlemler</th>
+                        <th style="width: 150px;">URL</th>
+                        <th style="width: 90px;">Durum</th>
+                        <th style="width: 80px;">Öncelik</th>
+                        <th style="width: 180px;">App Package</th>
+                        <th style="width: 150px;">Oluşturma</th>
+                        <th style="width: 200px;">İşlemler</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php foreach ($duyurular as $d): ?>
-                    <tr class="<?= ($d['priority'] >= 10) ? 'high-priority' : '' ?>">
-                        <td><input type="checkbox" name="duyuru_ids[]" value="<?= $d['id'] ?>"></td>
-                        <td><?= $d['id'] ?></td>
-                        <td><?= htmlspecialchars($d['type'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($d['title'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= nl2br(htmlspecialchars($d['content'], ENT_QUOTES, 'UTF-8')) ?></td>
+                    <?php foreach($duyurular as $d): ?>
+                    <tr class="<?= ($d['priority'] >= 50) ? 'high-priority' : '' ?>">
+                        <td>
+                            <input type="checkbox" name="duyuru_ids[]" value="<?= $d['id'] ?>" class="form-check-input">
+                        </td>
+                        <td><span class="badge bg-secondary">#<?= $d['id'] ?></span></td>
+                        <td>
+                            <span class="badge badge-info">
+                                <?php
+                                    $typeIcons = [
+                                        'url' => 'link-45deg',
+                                        'text' => 'file-text',
+                                        'dialog' => 'chat-square-text',
+                                        'info' => 'info-circle',
+                                        'five_stars' => 'star'
+                                    ];
+                                    $icon = $typeIcons[$d['type']] ?? 'megaphone';
+                                ?>
+                                <i class="bi bi-<?= $icon ?>"></i> <?= escapeHtml(ucfirst($d['type'])) ?>
+                            </span>
+                        </td>
+                        <td><strong><?= escapeHtml($d['title']) ?></strong></td>
+                        <td>
+                            <div style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                <?= escapeHtml(substr($d['content'], 0, 80)) ?><?= strlen($d['content']) > 80 ? '...' : '' ?>
+                            </div>
+                        </td>
                         <td>
                             <?php if ($d['type'] === 'url' && !empty($d['url'])): ?>
-                                <a href="<?= htmlspecialchars($d['url'], ENT_QUOTES, 'UTF-8') ?>" target="_blank"><?= htmlspecialchars($d['url'], ENT_QUOTES, 'UTF-8') ?></a>
+                                <a href="<?= escapeHtml($d['url']) ?>" target="_blank" class="text-primary" data-bs-toggle="tooltip" title="<?= escapeHtml($d['url']) ?>">
+                                    <i class="bi bi-box-arrow-up-right"></i> Link
+                                </a>
                             <?php else: ?>
-                                -
+                                <span class="text-muted">-</span>
                             <?php endif; ?>
                         </td>
                         <td>
                             <?php if ($d['status'] === 'active'): ?>
-                                <span class="badge bg-success">Aktif</span>
+                                <span class="badge badge-success">
+                                    <i class="bi bi-check-circle"></i> Aktif
+                                </span>
                             <?php else: ?>
-                                <span class="badge bg-secondary">Pasif</span>
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-x-circle"></i> Pasif
+                                </span>
                             <?php endif; ?>
                         </td>
-                        <td><?= htmlspecialchars($d['priority'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= htmlspecialchars($d['app_package'], ENT_QUOTES, 'UTF-8') ?></td>
-                        <td><?= $d['created_at'] ?></td>
-                        <td><?= $d['updated_at'] ?></td>
                         <td>
-                            <a href="edit.php?id=<?= $d['id'] ?>" class="btn btn-primary btn-sm">Düzenle</a>
-                            <a href="delete.php?id=<?= $d['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Bu duyuruyu silmek istediğinize emin misiniz?');">Sil</a>
+                            <?php if($d['priority'] >= 50): ?>
+                                <span class="badge badge-warning">
+                                    <i class="bi bi-exclamation-triangle"></i> <?= $d['priority'] ?>
+                                </span>
+                            <?php else: ?>
+                                <span class="badge bg-light text-dark"><?= $d['priority'] ?></span>
+                            <?php endif; ?>
+                        </td>
+                        <td><small class="text-muted"><?= escapeHtml($d['app_package']) ?></small></td>
+                        <td><small><?= date('d.m.Y H:i', strtotime($d['created_at'])) ?></small></td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a href="edit.php?id=<?= $d['id'] ?>" class="btn btn-primary" data-bs-toggle="tooltip" title="Düzenle">
+                                    <i class="bi bi-pencil-square"></i>
+                                </a>
+                                <a href="delete.php?id=<?= $d['id'] ?>" class="btn btn-danger" 
+                                   onclick="return confirm('Bu duyuruyu silmek istediğinize emin misiniz?');"
+                                   data-bs-toggle="tooltip" title="Sil">
+                                    <i class="bi bi-trash"></i>
+                                </a>
+                            </div>
                         </td>
                     </tr>
                     <?php endforeach; ?>
                     <?php if (empty($duyurular)): ?>
                     <tr>
-                        <td colspan="13" class="text-center">Henüz duyuru yok.</td>
+                        <td colspan="11" class="empty-state">
+                            <div class="empty-state-icon">📢</div>
+                            <div class="empty-state-title">Henüz Duyuru Yok</div>
+                            <div class="empty-state-text">
+                                İlk duyurunuzu eklemek için "Yeni Duyuru Ekle" butonuna tıklayın.
+                            </div>
+                            <a href="add.php" class="btn btn-primary mt-3">
+                                <i class="bi bi-plus-circle"></i> İlk Duyuruyu Ekle
+                            </a>
+                        </td>
                     </tr>
                     <?php endif; ?>
                 </tbody>
             </table>
         </div>
-    </form>
-</div>
+    </div>
+</form>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<?php
+$extra_js = <<<'EOD'
 <script>
+    // Tümünü seç
     document.getElementById('selectAll').addEventListener('change', function(e) {
         const checkboxes = document.querySelectorAll('input[name="duyuru_ids[]"]');
         checkboxes.forEach(cb => cb.checked = e.target.checked);
     });
+    
+    // Toplu işlem onayı
+    function confirmBulkAction(action) {
+        const selected = document.querySelectorAll('input[name="duyuru_ids[]"]:checked');
+        if(selected.length === 0) {
+            alert('Lütfen en az bir duyuru seçin.');
+            return false;
+        }
+        return confirm(`Seçili ${selected.length} duyuruyu ${action} yapmak istediğinize emin misiniz?`);
+    }
 </script>
+EOD;
 
-</body>
-</html>
+include __DIR__ . '/../includes/footer.php';
+?>
 
