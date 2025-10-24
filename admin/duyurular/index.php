@@ -1,282 +1,562 @@
-<?php<?php<?php<?php
+<?php<?php<?php<?php<?php
 
-ini_set('display_errors', 1);
+// Hata gösterimi
 
-error_reporting(E_ALL);require_once __DIR__ . '/../../config.php';
+@ini_set('display_errors', '1');ini_set('display_errors', 1);
+
+@ini_set('display_startup_errors', '1');
+
+@error_reporting(E_ALL);error_reporting(E_ALL);require_once __DIR__ . '/../../config.php';
 
 
+
+// Debug: 1. Adım
+
+echo "<!-- DEBUG: Başlangıç -->\n";
 
 require_once __DIR__ . '/../../config.php';require_once __DIR__ . '/../../db.php';require_once __DIR__ . '/../../config.php';require_once __DIR__ . '/../../config.php';
 
-require_once __DIR__ . '/../../db.php';
+// Dosyaları yükle
 
-require_once __DIR__ . '/../../security.php';require_once __DIR__ . '/../../security.php';
+try {require_once __DIR__ . '/../../db.php';
+
+    echo "<!-- DEBUG: config.php yükleniyor -->\n";
+
+    require_once __DIR__ . '/../../config.php';require_once __DIR__ . '/../../security.php';require_once __DIR__ . '/../../security.php';
+
+    echo "<!-- DEBUG: config.php yüklendi -->\n";
+
+} catch(Exception $e) {
+
+    die("Config hatası: " . $e->getMessage());
+
+}secureSessionStart();require_once __DIR__ . '/../../db.php';require_once __DIR__ . '/../../db.php';
 
 
 
-secureSessionStart();require_once __DIR__ . '/../../db.php';require_once __DIR__ . '/../../db.php';
+try {
+
+    echo "<!-- DEBUG: db.php yükleniyor -->\n";
+
+    require_once __DIR__ . '/../../db.php';if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {secureSessionStart();
+
+    echo "<!-- DEBUG: db.php yüklendi -->\n";
+
+} catch(Exception $e) {    header('Location: ../login.php');
+
+    die("DB hatası: " . $e->getMessage());
+
+}    exit;require_once __DIR__ . '/../../security.php';require_once __DIR__ . '/../../security.php';
 
 
 
-if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {secureSessionStart();
+try {}
 
-    header('Location: ../login.php');
+    echo "<!-- DEBUG: security.php yükleniyor -->\n";
 
-    exit;require_once __DIR__ . '/../../security.php';require_once __DIR__ . '/../../security.php';
+    require_once __DIR__ . '/../../security.php';// Session kontrolü
+
+    echo "<!-- DEBUG: security.php yüklendi -->\n";
+
+} catch(Exception $e) {$pdo = getDbConnection();
+
+    die("Security hatası: " . $e->getMessage());
+
+}$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+
+
+
+// Session başlat
+
+try {
+
+    echo "<!-- DEBUG: Session başlatılıyor -->\n";// Toplu işlem    header('Location: ../login.php');
+
+    secureSessionStart();
+
+    echo "<!-- DEBUG: Session başlatıldı -->\n";$error = '';
+
+} catch(Exception $e) {
+
+    die("Session hatası: " . $e->getMessage());if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['csrf_token'])) {    exit;secureSessionStart();secureSessionStart();
 
 }
-
-// Session kontrolü
-
-$pdo = getDbConnection();
-
-$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-
-
-
-// Toplu işlem    header('Location: ../login.php');
-
-$error = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['csrf_token'])) {    exit;secureSessionStart();secureSessionStart();
 
     if (!verifyCSRFToken($_POST['csrf_token'])) {
 
-        $error = "Güvenlik hatası!";}
+// Login kontrolü
 
-    } else {
+if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {        $error = "Güvenlik hatası!";}
 
-        $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);
+    echo "<!-- DEBUG: Kullanıcı giriş yapmamış, yönlendiriliyor -->\n";
 
-        $action = $_POST['action'];
+    header('Location: ../login.php');    } else {
 
-        $status = ($action === 'activate') ? 'active' : (($action === 'deactivate') ? 'inactive' : null);$pdo = getDbConnection();
+    exit;
+
+}        $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);
 
 
 
-        if($status && !empty($duyuru_ids)) {$page_title = "Duyurular Yönetimi";// Session kontrolü// Session kontrolü
+echo "<!-- DEBUG: Kullanıcı giriş yapmış -->\n";        $action = $_POST['action'];
 
-            try {
 
-                $placeholders = str_repeat('?,', count($duyuru_ids) - 1) . '?';
 
-                $stmt = $pdo->prepare("UPDATE duyurular SET status = ? WHERE id IN ($placeholders)");
+// DB bağlantısı        $status = ($action === 'activate') ? 'active' : (($action === 'deactivate') ? 'inactive' : null);$pdo = getDbConnection();
 
-                $params = array_merge(array($status), $duyuru_ids);// Toplu güncellemeif(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
+try {
 
-                $stmt->execute($params);
+    echo "<!-- DEBUG: DB bağlantısı kuruluyor -->\n";
 
-                header('Location: index.php?success=1');$error = '';
+    $pdo = getDbConnection();
 
-                exit;
+    echo "<!-- DEBUG: DB bağlantısı kuruldu -->\n";        if($status && !empty($duyuru_ids)) {$page_title = "Duyurular Yönetimi";// Session kontrolü// Session kontrolü
 
-            } catch(PDOException $e) {if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {    header('Location: ../login.php');    header('Location: ../login.php');
+} catch(Exception $e) {
 
-                $error = "Hata: " . $e->getMessage();
-
-            }    if (!verifyCSRFToken($_POST['csrf_token'])) {
-
-        }
-
-    }        $error = "Güvenlik hatası!";    exit;    exit;
+    die("DB bağlantı hatası: " . $e->getMessage());            try {
 
 }
 
-    } else {
+                $placeholders = str_repeat('?,', count($duyuru_ids) - 1) . '?';
 
-// İstatistikler
+$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';
 
-$stmt_stats = $pdo->query("SELECT         $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);}}
-
-    COUNT(*) as total,
-
-    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,        $action = $_POST['action'];
-
-    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive
-
-FROM duyurular");        $status = null;
-
-$stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);
+$error = '';                $stmt = $pdo->prepare("UPDATE duyurular SET status = ? WHERE id IN ($placeholders)");
 
 
 
-// Duyurular
+// Toplu işlem                $params = array_merge(array($status), $duyuru_ids);// Toplu güncellemeif(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
 
-$stmt = $pdo->query("SELECT * FROM duyurular ORDER BY priority DESC, created_at DESC");        if($action === 'activate') {$pdo = getDbConnection();$pdo = getDbConnection();
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['csrf_token'])) {
 
-$duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    echo "<!-- DEBUG: POST işlemi -->\n";                $stmt->execute($params);
 
-?>            $status = 'active';
+    
 
-<!DOCTYPE html>
+    if (!verifyCSRFToken($_POST['csrf_token'])) {                header('Location: index.php?success=1');$error = '';
 
-<html lang="tr">        } elseif($action === 'deactivate') {$page_title = "Duyurular Yönetimi";
+        $error = "Güvenlik hatası!";
 
-<head>
+    } else {                exit;
 
-    <meta charset="UTF-8">            $status = 'inactive';
+        $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);
 
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        $action = $_POST['action'];            } catch(PDOException $e) {if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {    header('Location: ../login.php');    header('Location: ../login.php');
 
-    <title>Duyurular - Admin Panel</title>        }$current_page = "duyurular";// Sayfa ayarları
+        $status = ($action === 'activate') ? 'active' : (($action === 'deactivate') ? 'inactive' : null);
 
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+                $error = "Hata: " . $e->getMessage();
+
+        if($status && !empty($duyuru_ids)) {
+
+            try {            }    if (!verifyCSRFToken($_POST['csrf_token'])) {
+
+                $placeholders = str_repeat('?,', count($duyuru_ids) - 1) . '?';
+
+                $stmt = $pdo->prepare("UPDATE duyurular SET status = ? WHERE id IN (" . $placeholders . ")");        }
+
+                $params = array_merge(array($status), $duyuru_ids);
+
+                $stmt->execute($params);    }        $error = "Güvenlik hatası!";    exit;    exit;
+
+                header('Location: index.php?success=1');
+
+                exit;}
+
+            } catch(PDOException $e) {
+
+                $error = "Güncelleme hatası: " . $e->getMessage();    } else {
+
+            }
+
+        }// İstatistikler
+
+    }
+
+}$stmt_stats = $pdo->query("SELECT         $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);}}
+
+
+
+// İstatistikler    COUNT(*) as total,
+
+try {
+
+    echo "<!-- DEBUG: İstatistikler çekiliyor -->\n";    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,        $action = $_POST['action'];
+
+    $stmt_stats = $pdo->query("SELECT 
+
+        COUNT(*) as total,    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive
+
+        SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+
+        SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactiveFROM duyurular");        $status = null;
+
+    FROM duyurular");
+
+    $stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);$stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);
+
+    echo "<!-- DEBUG: İstatistikler alındı -->\n";
+
+} catch(PDOException $e) {
+
+    die("İstatistik hatası: " . $e->getMessage());
+
+}// Duyurular
+
+
+
+// Duyurular$stmt = $pdo->query("SELECT * FROM duyurular ORDER BY priority DESC, created_at DESC");        if($action === 'activate') {$pdo = getDbConnection();$pdo = getDbConnection();
+
+try {
+
+    echo "<!-- DEBUG: Duyurular çekiliyor -->\n";$duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    $stmt = $pdo->query("SELECT * FROM duyurular ORDER BY priority DESC, created_at DESC");
+
+    $duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);?>            $status = 'active';
+
+    echo "<!-- DEBUG: " . count($duyurular) . " duyuru bulundu -->\n";
+
+} catch(PDOException $e) {<!DOCTYPE html>
+
+    die("Duyuru çekme hatası: " . $e->getMessage());
+
+}<html lang="tr">        } elseif($action === 'deactivate') {$page_title = "Duyurular Yönetimi";
+
+
+
+echo "<!-- DEBUG: HTML çıktısı başlıyor -->\n";<head>
+
+?>
+
+<!DOCTYPE html>    <meta charset="UTF-8">            $status = 'inactive';
+
+<html lang="tr">
+
+<head>    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">    <title>Duyurular - Admin Panel</title>        }$current_page = "duyurular";// Sayfa ayarları
+
+    <title>Duyurular - Admin Panel</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
-    <link rel="stylesheet" href="../assets/css/admin-style.css">
+    <link rel="stylesheet" href="../assets/css/admin-style.css">    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
 
-</head>        if($status && !empty($duyuru_ids)) {$page_title = "Duyurular Yönetimi";
+</head>
 
-<body>
+<body>    <link rel="stylesheet" href="../assets/css/admin-style.css">
 
-    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">            try {
+    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">
 
-        <div class="container-fluid">
+        <div class="container-fluid"></head>        if($status && !empty($duyuru_ids)) {$page_title = "Duyurular Yönetimi";
 
-            <a class="navbar-brand" href="../index.php"><i class="bi bi-shield-check"></i> Admin Panel</a>                $in  = str_repeat('?,', count($duyuru_ids) - 1) . '?';// Toplu güncelleme işlemi
+            <a class="navbar-brand" href="../index.php"><i class="bi bi-shield-check"></i> Admin Panel</a>
 
-            <div class="collapse navbar-collapse">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"><body>
 
-                <ul class="navbar-nav me-auto">                $stmt = $pdo->prepare("UPDATE duyurular SET status = ? WHERE id IN ($in)");
+                <span class="navbar-toggler-icon"></span>
+
+            </button>    <nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">            try {
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+
+                <ul class="navbar-nav me-auto">        <div class="container-fluid">
 
                     <li class="nav-item"><a class="nav-link" href="../index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
 
-                    <li class="nav-item"><a class="nav-link active" href="index.php"><i class="bi bi-megaphone"></i> Duyurular</a></li>                $params = array_merge(array($status), $duyuru_ids);if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {// Toplu güncelleme işlemi
+                    <li class="nav-item"><a class="nav-link active" href="index.php"><i class="bi bi-megaphone"></i> Duyurular</a></li>            <a class="navbar-brand" href="../index.php"><i class="bi bi-shield-check"></i> Admin Panel</a>                $in  = str_repeat('?,', count($duyuru_ids) - 1) . '?';// Toplu güncelleme işlemi
 
                     <li class="nav-item"><a class="nav-link" href="../istatistikler.php"><i class="bi bi-graph-up"></i> İstatistikler</a></li>
 
-                </ul>                $stmt->execute($params);
+                </ul>            <div class="collapse navbar-collapse">
 
                 <div class="d-flex align-items-center">
 
-                    <span class="text-white me-3"><i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?></span>                header('Location: index.php?success=1');    if (!verifyCSRFToken($_POST['csrf_token'])) {if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {
+                    <span class="text-white me-3"><i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?></span>                <ul class="navbar-nav me-auto">                $stmt = $pdo->prepare("UPDATE duyurular SET status = ? WHERE id IN ($in)");
 
                     <a href="../logout.php" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Çıkış</a>
 
-                </div>                exit;
+                </div>                    <li class="nav-item"><a class="nav-link" href="../index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
 
             </div>
 
-        </div>            } catch(PDOException $e) {        $error = "Güvenlik hatası!";    if (!verifyCSRFToken($_POST['csrf_token'])) {
+        </div>                    <li class="nav-item"><a class="nav-link active" href="index.php"><i class="bi bi-megaphone"></i> Duyurular</a></li>                $params = array_merge(array($status), $duyuru_ids);if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {// Toplu güncelleme işlemi
 
     </nav>
 
-                error_log("Bulk update error: " . $e->getMessage());
+                    <li class="nav-item"><a class="nav-link" href="../istatistikler.php"><i class="bi bi-graph-up"></i> İstatistikler</a></li>
 
     <div class="container-fluid py-4">
 
-        <h1 class="page-title mb-4"><i class="bi bi-megaphone-fill"></i> Duyurular Yönetimi</h1>                $error = "Toplu güncelleme sırasında bir hata oluştu.";    } else {        die("Güvenlik hatası!");
+        <h1 class="page-title mb-4"><i class="bi bi-megaphone-fill"></i> Duyurular Yönetimi</h1>                </ul>                $stmt->execute($params);
 
 
 
-        <?php if(isset($_GET['success'])): ?>            }
+        <?php if(isset($_GET['success'])): ?>                <div class="d-flex align-items-center">
 
         <div class="alert alert-success alert-dismissible fade show">
 
-            <i class="bi bi-check-circle-fill"></i> İşlem başarılı!        }        $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);    }
+            <i class="bi bi-check-circle-fill"></i> İşlem başarılı!                    <span class="text-white me-3"><i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?></span>                header('Location: index.php?success=1');    if (!verifyCSRFToken($_POST['csrf_token'])) {if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['duyuru_ids']) && isset($_POST['action']) && isset($_POST['csrf_token'])) {
 
             <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 
-        </div>    }
+        </div>                    <a href="../logout.php" class="btn btn-outline-light btn-sm"><i class="bi bi-box-arrow-right"></i> Çıkış</a>
 
         <?php endif; ?>
 
-}        $action = $_POST['action'];    
+                </div>                exit;
 
         <?php if($error): ?>
 
-        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>            </div>
 
         <?php endif; ?>
 
-// İstatistikler    $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);
+        </div>            } catch(PDOException $e) {        $error = "Güvenlik hatası!";    if (!verifyCSRFToken($_POST['csrf_token'])) {
 
         <!-- İstatistikler -->
 
-        <div class="row mb-4">$stmt_stats = $pdo->query("SELECT 
+        <div class="row mb-4">    </nav>
 
             <div class="col-md-4">
 
-                <div class="stat-card">    COUNT(*) as total,        if($action === 'activate') {    $action = $_POST['action'];
+                <div class="stat-card">                error_log("Bulk update error: " . $e->getMessage());
 
                     <div class="stat-card-icon bg-primary"><i class="bi bi-megaphone-fill"></i></div>
 
-                    <div class="stat-card-info">    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                    <div class="stat-card-info">    <div class="container-fluid py-4">
 
                         <div class="stat-card-title">Toplam</div>
 
-                        <div class="stat-card-value"><?php echo $stats['total']; ?></div>    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive            $status = 'active';
+                        <div class="stat-card-value"><?php echo $stats['total']; ?></div>        <h1 class="page-title mb-4"><i class="bi bi-megaphone-fill"></i> Duyurular Yönetimi</h1>                $error = "Toplu güncelleme sırasında bir hata oluştu.";    } else {        die("Güvenlik hatası!");
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div class="col-md-4">        <?php if(isset($_GET['success'])): ?>            }
+
+                <div class="stat-card">
+
+                    <div class="stat-card-icon bg-success"><i class="bi bi-check-circle-fill"></i></div>        <div class="alert alert-success alert-dismissible fade show">
+
+                    <div class="stat-card-info">
+
+                        <div class="stat-card-title">Aktif</div>            <i class="bi bi-check-circle-fill"></i> İşlem başarılı!        }        $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);    }
+
+                        <div class="stat-card-value text-success"><?php echo $stats['active']; ?></div>
+
+                    </div>            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+
+                </div>
+
+            </div>        </div>    }
+
+            <div class="col-md-4">
+
+                <div class="stat-card">        <?php endif; ?>
+
+                    <div class="stat-card-icon bg-secondary"><i class="bi bi-pause-circle-fill"></i></div>
+
+                    <div class="stat-card-info">}        $action = $_POST['action'];    
+
+                        <div class="stat-card-title">Pasif</div>
+
+                        <div class="stat-card-value"><?php echo $stats['inactive']; ?></div>        <?php if($error): ?>
+
+                    </div>
+
+                </div>        <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+
+            </div>
+
+        </div>        <?php endif; ?>
+
+
+
+        <!-- Tablo -->// İstatistikler    $duyuru_ids = array_map('intval', $_POST['duyuru_ids']);
+
+        <div class="card">
+
+            <div class="card-header d-flex justify-content-between">        <!-- İstatistikler -->
+
+                <h5><i class="bi bi-list-ul"></i> Tüm Duyurular</h5>
+
+                <a href="add.php" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Yeni</a>        <div class="row mb-4">$stmt_stats = $pdo->query("SELECT 
+
+            </div>
+
+            <div class="card-body">            <div class="col-md-4">
+
+                <?php if(count($duyurular) > 0): ?>
+
+                <form method="POST" id="bulkForm">                <div class="stat-card">    COUNT(*) as total,        if($action === 'activate') {    $action = $_POST['action'];
+
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+
+                    <input type="hidden" name="action" id="bulkAction">                    <div class="stat-card-icon bg-primary"><i class="bi bi-megaphone-fill"></i></div>
+
+                    
+
+                    <div class="mb-3">                    <div class="stat-card-info">    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+
+                        <button type="button" class="btn btn-success btn-sm" onclick="bulkUpdate('activate')">
+
+                            <i class="bi bi-check-circle"></i> Aktif Et                        <div class="stat-card-title">Toplam</div>
+
+                        </button>
+
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="bulkUpdate('deactivate')">                        <div class="stat-card-value"><?php echo $stats['total']; ?></div>    SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive            $status = 'active';
+
+                            <i class="bi bi-pause-circle"></i> Pasif Et
+
+                        </button>                    </div>
 
                     </div>
 
                 </div>FROM duyurular");
 
-            </div>
+                    <div class="table-responsive">
 
-            <div class="col-md-4">$stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);        } elseif($action === 'deactivate') {    if($action === 'activate') {
+                        <table class="table table-hover">            </div>
 
-                <div class="stat-card">
+                            <thead>
 
-                    <div class="stat-card-icon bg-success"><i class="bi bi-check-circle-fill"></i></div>
+                                <tr>            <div class="col-md-4">$stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);        } elseif($action === 'deactivate') {    if($action === 'activate') {
 
-                    <div class="stat-card-info">
+                                    <th width="40"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></th>
 
-                        <div class="stat-card-title">Aktif</div>// Duyuruları getir            $status = 'inactive';        $status = 'active';
+                                    <th>ID</th>                <div class="stat-card">
 
-                        <div class="stat-card-value text-success"><?php echo $stats['active']; ?></div>
+                                    <th>Tür</th>
 
-                    </div>$stmt = $pdo->query("SELECT * FROM duyurular ORDER BY priority DESC, created_at DESC");
+                                    <th>Başlık</th>                    <div class="stat-card-icon bg-success"><i class="bi bi-check-circle-fill"></i></div>
 
-                </div>
+                                    <th>Durum</th>
 
-            </div>$duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);        } else {    } elseif($action === 'deactivate') {
+                                    <th>Tarih</th>                    <div class="stat-card-info">
 
-            <div class="col-md-4">
+                                    <th>İşlem</th>
 
-                <div class="stat-card">
+                                </tr>                        <div class="stat-card-title">Aktif</div>// Duyuruları getir            $status = 'inactive';        $status = 'active';
 
-                    <div class="stat-card-icon bg-secondary"><i class="bi bi-pause-circle-fill"></i></div>
+                            </thead>
 
-                    <div class="stat-card-info">$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';            $status = null;        $status = 'inactive';
+                            <tbody>                        <div class="stat-card-value text-success"><?php echo $stats['active']; ?></div>
 
-                        <div class="stat-card-title">Pasif</div>
+                                <?php foreach($duyurular as $d): ?>
 
-                        <div class="stat-card-value"><?php echo $stats['inactive']; ?></div>?>
+                                <tr>                    </div>$stmt = $pdo->query("SELECT * FROM duyurular ORDER BY priority DESC, created_at DESC");
+
+                                    <td><input type="checkbox" name="duyuru_ids[]" value="<?php echo $d['id']; ?>" class="row-checkbox"></td>
+
+                                    <td>#<?php echo $d['id']; ?></td>                </div>
+
+                                    <td><?php echo htmlspecialchars($d['type']); ?></td>
+
+                                    <td><strong><?php echo htmlspecialchars($d['title']); ?></strong></td>            </div>$duyurular = $stmt->fetchAll(PDO::FETCH_ASSOC);        } else {    } elseif($action === 'deactivate') {
+
+                                    <td>
+
+                                        <?php if($d['status'] === 'active'): ?>            <div class="col-md-4">
+
+                                            <span class="badge bg-success">Aktif</span>
+
+                                        <?php else: ?>                <div class="stat-card">
+
+                                            <span class="badge bg-secondary">Pasif</span>
+
+                                        <?php endif; ?>                    <div class="stat-card-icon bg-secondary"><i class="bi bi-pause-circle-fill"></i></div>
+
+                                    </td>
+
+                                    <td><?php echo date('d.m.Y', strtotime($d['created_at'])); ?></td>                    <div class="stat-card-info">$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';            $status = null;        $status = 'inactive';
+
+                                    <td>
+
+                                        <a href="edit.php?id=<?php echo $d['id']; ?>" class="btn btn-sm btn-primary"><i class="bi bi-pencil"></i></a>                        <div class="stat-card-title">Pasif</div>
+
+                                        <a href="delete.php?id=<?php echo $d['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Silmek istiyor musunuz?')"><i class="bi bi-trash"></i></a>
+
+                                    </td>                        <div class="stat-card-value"><?php echo $stats['inactive']; ?></div>?>
+
+                                </tr>
+
+                                <?php endforeach; ?>                    </div>
+
+                            </tbody>
+
+                        </table>                </div><!DOCTYPE html>        }    } else {
 
                     </div>
 
-                </div><!DOCTYPE html>        }    } else {
+                </form>            </div>
 
-            </div>
+                <?php else: ?>
 
-        </div><html lang="tr">
+                <div class="text-center py-5">        </div><html lang="tr">
+
+                    <i class="bi bi-megaphone" style="font-size:4rem;color:#ccc"></i>
+
+                    <h3>Henüz Duyuru Yok</h3>
+
+                    <a href="add.php" class="btn btn-primary">İlk Duyuruyu Ekle</a>
+
+                </div>        <!-- Tablo --><head>        $status = null;
+
+                <?php endif; ?>
+
+            </div>        <div class="card">
+
+        </div>
+
+    </div>            <div class="card-header d-flex justify-content-between">    <meta charset="UTF-8">
 
 
 
-        <!-- Tablo --><head>        $status = null;
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>                <h5><i class="bi bi-list-ul"></i> Tüm Duyurular</h5>
 
-        <div class="card">
+    <script>
 
-            <div class="card-header d-flex justify-content-between">    <meta charset="UTF-8">
+        function toggleAll(cb) {                <a href="add.php" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Yeni</a>    <meta name="viewport" content="width=device-width, initial-scale=1.0">        if($status && !empty($duyuru_ids)) {    }
 
-                <h5><i class="bi bi-list-ul"></i> Tüm Duyurular</h5>
+            var boxes = document.querySelectorAll('.row-checkbox');
 
-                <a href="add.php" class="btn btn-primary btn-sm"><i class="bi bi-plus-circle"></i> Yeni</a>    <meta name="viewport" content="width=device-width, initial-scale=1.0">        if($status && !empty($duyuru_ids)) {    }
+            for(var i=0; i<boxes.length; i++) boxes[i].checked = cb.checked;            </div>
 
-            </div>
+        }
 
-            <div class="card-body">    <title>Duyurular Yönetimi - Admin Panel</title>
+        function bulkUpdate(action) {            <div class="card-body">    <title>Duyurular Yönetimi - Admin Panel</title>
 
-                <?php if(count($duyurular) > 0): ?>
+            var checked = document.querySelectorAll('.row-checkbox:checked');
 
-                <form method="POST" id="bulkForm">    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">            try {
+            if(checked.length === 0) { alert('Lütfen seçim yapın!'); return; }                <?php if(count($duyurular) > 0): ?>
 
-                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+            if(confirm('İşlem yapılsın mı?')) {
 
-                    <input type="hidden" name="action" id="bulkAction">    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+                document.getElementById('bulkAction').value = action;                <form method="POST" id="bulkForm">    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">            try {
 
-                    
+                document.getElementById('bulkForm').submit();
+
+            }                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+
+        }
+
+    </script>                    <input type="hidden" name="action" id="bulkAction">    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+</body>
+
+</html>                    
+
+<!-- DEBUG: HTML bitti -->
 
                     <div class="mb-3">    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">                $in  = str_repeat('?,', count($duyuru_ids) - 1) . '?';    if($status && !empty($duyuru_ids)) {
 

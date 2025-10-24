@@ -1,0 +1,12 @@
+# PHP Error Display için .htaccess
+# Bu dosyayı admin/duyurular/ klasörüne yükleyin
+
+# PHP Hata gösterimi
+php_flag display_errors on
+php_value error_reporting E_ALL
+
+# Veya alternatif syntax
+<IfModule mod_php7.c>
+    php_flag display_errors On
+    php_value error_reporting 32767
+</IfModule>
