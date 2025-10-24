@@ -81,7 +81,7 @@ $admin_username = $_SESSION['admin_username'] ?? 'Admin';
             </ul>
             
             <div class="d-flex align-items-center">
-                <span class="user-info d-none d-md-block"><?= escapeHtml($admin_username) ?></span>
+                <span class="user-info d-none d-md-block"><?= htmlspecialchars($admin_username, ENT_QUOTES, 'UTF-8') ?></span>
                 <a class="btn btn-outline-light btn-sm" href="<?= $base_path ?>logout.php">
                     <i class="bi bi-box-arrow-right me-1"></i>Çıkış Yap
                 </a>
