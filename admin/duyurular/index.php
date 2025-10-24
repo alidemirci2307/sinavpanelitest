@@ -1,9 +1,31 @@
 <?php
-require_once __DIR__ . '/../../config.php';
-require_once __DIR__ . '/../../db.php';
-require_once __DIR__ . '/../../security.php';
+// Hata gösterimi - geliştirme için
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 
-secureSessionStart();
+try {
+    require_once __DIR__ . '/../../config.php';
+} catch (Exception $e) {
+    die("config.php yüklenemedi: " . $e->getMessage());
+}
+
+try {
+    require_once __DIR__ . '/../../db.php';
+} catch (Exception $e) {
+    die("db.php yüklenemedi: " . $e->getMessage());
+}
+
+try {
+    require_once __DIR__ . '/../../security.php';
+} catch (Exception $e) {
+    die("security.php yüklenemedi: " . $e->getMessage());
+}
+
+try {
+    secureSessionStart();
+} catch (Exception $e) {
+    die("Session başlatılamadı: " . $e->getMessage());
+}
 
 // Session kontrolü
 if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
@@ -11,7 +33,11 @@ if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true
     exit;
 }
 
-$pdo = getDbConnection();
+try {
+    $pdo = getDbConnection();
+} catch (Exception $e) {
+    die("Veritabanı bağlantısı kurulamadı: " . $e->getMessage());
+}
 
 // Sayfa ayarları
 $page_title = "Duyurular Yönetimi";
