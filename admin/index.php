@@ -201,10 +201,9 @@ include __DIR__ . '/includes/header.php';
                         <?php
                         // Package badge için renk seçimi
                         $packageHash = crc32($f['app_package']) % 8 + 1;
-                        $packageShort = substr($f['app_package'], strrpos($f['app_package'], '.') + 1);
                         ?>
-                        <span class="package-badge pkg-<?= $packageHash ?>" title="<?= escapeHtml($f['app_package']) ?>">
-                            <?= escapeHtml($packageShort) ?>
+                        <span class="package-badge pkg-<?= $packageHash ?>">
+                            <?= escapeHtml($f['app_package']) ?>
                         </span>
                     </td>
                     <td><small><?= date('d.m.Y H:i', strtotime($f['created_at'])) ?></small></td>
@@ -220,6 +219,17 @@ include __DIR__ . '/includes/header.php';
                                 data-id="<?= $f['id'] ?>" data-bs-toggle="tooltip" title="Konuşma geçmişini görüntüle">
                             <i class="bi bi-chat-dots"></i> Görüntüle
                         </button>
+                        <?php if ($f['status'] === 'open'): ?>
+                            <button class="btn btn-success btn-sm" onclick="toggleFeedbackStatus(<?= $f['id'] ?>, 'closed')" 
+                                    data-bs-toggle="tooltip" title="Talebi kapat">
+                                <i class="bi bi-check-circle"></i> Kapat
+                            </button>
+                        <?php else: ?>
+                            <button class="btn btn-warning btn-sm" onclick="toggleFeedbackStatus(<?= $f['id'] ?>, 'open')" 
+                                    data-bs-toggle="tooltip" title="Talebi tekrar aç">
+                                <i class="bi bi-arrow-counterclockwise"></i> Aç
+                            </button>
+                        <?php endif; ?>
                     </td>
                 </tr>
                 <?php endforeach; ?>
@@ -353,6 +363,36 @@ $extra_js = <<<'EOD'
             btn.innerHTML = '<i class="bi bi-send-fill"></i> Yanıt Gönder';
         });
     };
+
+    function toggleFeedbackStatus(feedbackId, newStatus) {
+        if (!confirm(newStatus === 'closed' ? 'Bu talebi kapatmak istediğinize emin misiniz?' : 'Bu talebi tekrar açmak istediğinize emin misiniz?')) {
+            return;
+        }
+
+        const csrfToken = document.getElementById('csrfToken').value;
+
+        fetch('update_feedback.php', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                feedback_id: feedbackId, 
+                status: newStatus,
+                csrf_token: csrfToken
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('İşlem sırasında bir hata oluştu: ' + (data.error || 'Bilinmeyen hata'));
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Bir hata oluştu.');
+        });
+    }
 </script>
 EOD;
 

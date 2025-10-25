@@ -174,7 +174,9 @@ include __DIR__ . '/../includes/header.php';
 <div class="table-wrapper">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h5>Tum Duyurular</h5>
-        <a href="add.php" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Yeni Duyuru</a>
+        <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addDuyuruModal">
+            <i class="bi bi-plus-lg"></i> Yeni Duyuru
+        </button>
     </div>
     
     <?php if(count($duyurular) > 0): ?>
@@ -243,6 +245,109 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 </div>
 
+<!-- Yeni Duyuru Modal -->
+<div class="modal fade" id="addDuyuruModal" tabindex="-1" aria-labelledby="addDuyuruModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDuyuruModalLabel">
+                    <i class="bi bi-plus-circle me-2"></i>Yeni Duyuru Ekle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addDuyuruForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Başlık <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">İçerik <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="content" name="content" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tür <span class="text-danger">*</span></label>
+                            <select class="form-select" id="type" name="type" required>
+                                <option value="text">Metin</option>
+                                <option value="url">URL</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Öncelik <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="priority" name="priority" value="5" min="1" max="100" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="urlField" style="display: none;">
+                        <label class="form-label fw-bold">URL</label>
+                        <input type="url" class="form-control" id="url" name="url" placeholder="https://...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Uygulama Paketleri <span class="text-danger">*</span></label>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="packageMode" id="packageModeAll" value="all" checked>
+                            <label class="form-check-label" for="packageModeAll">
+                                Tüm Uygulamalar
+                            </label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="radio" name="packageMode" id="packageModeManual" value="manual">
+                            <label class="form-check-label" for="packageModeManual">
+                                Manuel Giriş
+                            </label>
+                        </div>
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="radio" name="packageMode" id="packageModeSelect" value="select">
+                            <label class="form-check-label" for="packageModeSelect">
+                                Listeden Seç
+                            </label>
+                        </div>
+                        
+                        <div id="manualPackageInput" style="display: none;">
+                            <input type="text" class="form-control mb-2" id="manualPackage" placeholder="com.example.app">
+                            <small class="text-muted">Örnek: com.example.myapp</small>
+                        </div>
+                        
+                        <div id="selectPackageList" style="display: none;">
+                            <div class="border rounded p-3" style="max-height: 200px; overflow-y: auto;">
+                                <?php foreach($packages as $p): ?>
+                                <div class="form-check">
+                                    <input class="form-check-input package-checkbox" type="checkbox" value="<?php echo htmlspecialchars($p); ?>" id="pkg_<?php echo md5($p); ?>">
+                                    <label class="form-check-label" for="pkg_<?php echo md5($p); ?>">
+                                        <?php echo htmlspecialchars($p); ?>
+                                    </label>
+                                </div>
+                                <?php endforeach; ?>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Durum</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="status" name="status" checked>
+                            <label class="form-check-label" for="status">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Kaydet
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php
 $extra_js = <<<'EOD'
 <script>
@@ -264,6 +369,95 @@ function bulkUpdate(action){
         document.getElementById('bulkForm').submit();
     }
 }
+
+// Modal içindeki paket modu değişimi
+document.querySelectorAll('input[name="packageMode"]').forEach(radio => {
+    radio.addEventListener('change', function() {
+        document.getElementById('manualPackageInput').style.display = 'none';
+        document.getElementById('selectPackageList').style.display = 'none';
+        
+        if (this.value === 'manual') {
+            document.getElementById('manualPackageInput').style.display = 'block';
+        } else if (this.value === 'select') {
+            document.getElementById('selectPackageList').style.display = 'block';
+        }
+    });
+});
+
+// Tür değişimi
+document.getElementById('type').addEventListener('change', function() {
+    if (this.value === 'url') {
+        document.getElementById('urlField').style.display = 'block';
+        document.getElementById('url').required = true;
+    } else {
+        document.getElementById('urlField').style.display = 'none';
+        document.getElementById('url').required = false;
+    }
+});
+
+// Form gönderimi
+document.getElementById('addDuyuruForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        title: document.getElementById('title').value,
+        content: document.getElementById('content').value,
+        type: document.getElementById('type').value,
+        priority: document.getElementById('priority').value,
+        url: document.getElementById('url').value,
+        status: document.getElementById('status').checked ? 'active' : 'inactive',
+        csrf_token: '<?php echo htmlspecialchars(generateCSRFToken()); ?>'
+    };
+    
+    // Paket seçimini belirle
+    const packageMode = document.querySelector('input[name="packageMode"]:checked').value;
+    if (packageMode === 'all') {
+        formData.app_package = 'all';
+    } else if (packageMode === 'manual') {
+        const manualPackage = document.getElementById('manualPackage').value.trim();
+        if (!manualPackage) {
+            alert('Lütfen paket adını girin!');
+            return;
+        }
+        formData.app_package = manualPackage;
+    } else if (packageMode === 'select') {
+        const selectedPackages = Array.from(document.querySelectorAll('.package-checkbox:checked'))
+            .map(cb => cb.value);
+        if (selectedPackages.length === 0) {
+            alert('Lütfen en az bir paket seçin!');
+            return;
+        }
+        formData.app_packages = selectedPackages;
+    }
+    
+    // Gönder butonu
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kaydediliyor...';
+    
+    fetch('save_duyuru.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Duyuru başarıyla eklendi!');
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Kaydet';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu!');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Kaydet';
+    });
+});
 </script>
 EOD;
 
