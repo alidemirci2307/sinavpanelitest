@@ -24,8 +24,8 @@ if (isset($_GET['feedback_id'])) {
         // İlk mesajı göster (kullanıcıdan gelen)
         echo '<div class="conversation-message user-message">';
         echo '<div class="mb-2"><strong>' . escapeHtml($feedback['subject']) . '</strong></div>';
-        echo escapeHtml($feedback['message']);
-        echo '<span class="conversation-timestamp">' . escapeHtml($feedback['created_at']) . '</span>';
+        echo '<div>' . nl2br(escapeHtml($feedback['message'])) . '</div>';
+        echo '<div class="conversation-timestamp">' . date('d.m.Y H:i', strtotime($feedback['created_at'])) . '</div>';
         echo '</div>';
     }
 
@@ -37,8 +37,8 @@ if (isset($_GET['feedback_id'])) {
     foreach ($conversations as $conversation) {
         $class = $conversation['sender'] === 'admin' ? 'admin-message' : 'user-message';
         echo '<div class="conversation-message ' . $class . '">';
-        echo escapeHtml($conversation['message']);
-        echo '<span class="conversation-timestamp">' . escapeHtml($conversation['created_at']) . '</span>';
+        echo '<div>' . nl2br(escapeHtml($conversation['message'])) . '</div>';
+        echo '<div class="conversation-timestamp">' . date('d.m.Y H:i', strtotime($conversation['created_at'])) . '</div>';
         echo '</div>';
     }
 

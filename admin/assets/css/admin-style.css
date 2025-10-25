@@ -202,6 +202,57 @@ body {
     background: var(--info-color);
 }
 
+.badge-secondary {
+    background: var(--secondary-color);
+    color: white;
+}
+
+/* Package Badge'leri */
+.package-badge {
+    display: inline-block;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.7rem;
+    font-weight: 600;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.package-badge.pkg-1 {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.package-badge.pkg-2 {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.package-badge.pkg-3 {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.package-badge.pkg-4 {
+    background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);
+}
+
+.package-badge.pkg-5 {
+    background: linear-gradient(135deg, #fa709a 0%, #fee140 100%);
+}
+
+.package-badge.pkg-6 {
+    background: linear-gradient(135deg, #30cfd0 0%, #330867 100%);
+}
+
+.package-badge.pkg-7 {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+    color: #333;
+}
+
+.package-badge.pkg-8 {
+    background: linear-gradient(135deg, #ff9a56 0%, #ff6a88 100%);
+}
+
 /* Butonlar - Özel */
 .btn {
     font-weight: 600;
@@ -429,6 +480,8 @@ body {
     font-size: 0.75rem;
     opacity: 0.7;
     margin-top: 0.5rem;
+    display: block;
+    font-style: italic;
 }
 
 #conversationContent {

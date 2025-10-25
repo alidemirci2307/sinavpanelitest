@@ -10,6 +10,34 @@ $pdo = getDbConnection();
 // Sayfa ayarları
 $page_title = "Geri Bildirim Talepler";
 
+// Filtreler
+$filterStatus = isset($_GET['status']) ? $_GET['status'] : '';
+$filterPackage = isset($_GET['package']) ? $_GET['package'] : '';
+$filterDateFrom = isset($_GET['date_from']) ? $_GET['date_from'] : '';
+$filterDateTo = isset($_GET['date_to']) ? $_GET['date_to'] : '';
+
+$whereConditions = array();
+$params = array();
+
+if($filterStatus) {
+    $whereConditions[] = "status = ?";
+    $params[] = $filterStatus;
+}
+if($filterPackage) {
+    $whereConditions[] = "app_package = ?";
+    $params[] = $filterPackage;
+}
+if($filterDateFrom) {
+    $whereConditions[] = "DATE(created_at) >= ?";
+    $params[] = $filterDateFrom;
+}
+if($filterDateTo) {
+    $whereConditions[] = "DATE(created_at) <= ?";
+    $params[] = $filterDateTo;
+}
+
+$whereSQL = !empty($whereConditions) ? 'WHERE ' . implode(' AND ', $whereConditions) : '';
+
 // İstatistikler
 $stmt_stats = $pdo->query("SELECT 
     COUNT(*) as total,
@@ -20,8 +48,14 @@ FROM feedbacks");
 $stats = $stmt_stats->fetch(PDO::FETCH_ASSOC);
 
 // Talepler
-$stmt = $pdo->query("SELECT * FROM feedbacks ORDER BY created_at DESC LIMIT 100");
+$query = "SELECT * FROM feedbacks " . $whereSQL . " ORDER BY created_at DESC LIMIT 100";
+$stmt = $pdo->prepare($query);
+$stmt->execute($params);
 $feedbacks = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Paketleri çek
+$packagesStmt = $pdo->query("SELECT DISTINCT app_package FROM feedbacks WHERE app_package IS NOT NULL ORDER BY app_package");
+$packages = $packagesStmt->fetchAll(PDO::FETCH_COLUMN);
 
 // Header
 include __DIR__ . '/includes/header.php';
@@ -91,6 +125,51 @@ include __DIR__ . '/includes/header.php';
     </div>
 </div>
 
+<!-- Filtreler -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5><i class="bi bi-funnel"></i> Filtrele</h5>
+    </div>
+    <div class="card-body">
+        <form method="GET" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Durum</label>
+                <select name="status" class="form-select form-select-sm">
+                    <option value="">Tümü</option>
+                    <option value="open" <?php echo $filterStatus === 'open' ? 'selected' : ''; ?>>Açık</option>
+                    <option value="closed" <?php echo $filterStatus === 'closed' ? 'selected' : ''; ?>>Kapalı</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Uygulama</label>
+                <select name="package" class="form-select form-select-sm">
+                    <option value="">Tümü</option>
+                    <?php foreach($packages as $p): ?>
+                    <option value="<?php echo htmlspecialchars($p); ?>" <?php echo $filterPackage === $p ? 'selected' : ''; ?>><?php echo htmlspecialchars($p); ?></option>
+                    <?php endforeach; ?>
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Başlangıç</label>
+                <input type="date" name="date_from" class="form-control form-control-sm" value="<?php echo htmlspecialchars($filterDateFrom); ?>">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Bitiş</label>
+                <input type="date" name="date_to" class="form-control form-control-sm" value="<?php echo htmlspecialchars($filterDateTo); ?>">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary btn-sm w-100"><i class="bi bi-search"></i> Ara</button>
+            </div>
+        </form>
+        <?php if($filterStatus || $filterPackage || $filterDateFrom || $filterDateTo): ?>
+        <div class="mt-3">
+            <a href="index.php" class="btn btn-sm btn-outline-secondary"><i class="bi bi-x-circle"></i> Filtreyi Temizle</a>
+            <span class="text-muted ms-2"><?php echo count($feedbacks); ?> sonuç bulundu</span>
+        </div>
+        <?php endif; ?>
+    </div>
+</div>
+
 <!-- Talepler Tablosu -->
 <div class="table-wrapper">
     <div class="table-responsive">
@@ -118,7 +197,16 @@ include __DIR__ . '/includes/header.php';
                         </div>
                     </td>
                     <td><small class="text-muted"><?= escapeHtml(substr($f['device_id'], 0, 15)) ?>...</small></td>
-                    <td><small class="text-muted"><?= escapeHtml($f['app_package']) ?></small></td>
+                    <td>
+                        <?php
+                        // Package badge için renk seçimi
+                        $packageHash = crc32($f['app_package']) % 8 + 1;
+                        $packageShort = substr($f['app_package'], strrpos($f['app_package'], '.') + 1);
+                        ?>
+                        <span class="package-badge pkg-<?= $packageHash ?>" title="<?= escapeHtml($f['app_package']) ?>">
+                            <?= escapeHtml($packageShort) ?>
+                        </span>
+                    </td>
                     <td><small><?= date('d.m.Y H:i', strtotime($f['created_at'])) ?></small></td>
                     <td>
                         <?php if ($f['status'] === 'open'): ?>
