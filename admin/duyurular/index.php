@@ -222,9 +222,11 @@ include __DIR__ . '/../includes/header.php';
                         </td>
                         <td><?php echo date('d.m.Y', strtotime($d['created_at'])); ?></td>
                         <td>
-                            <a href="edit.php?id=<?php echo $d['id']; ?>" class="btn btn-sm btn-primary" data-bs-toggle="tooltip" title="Duzenle">
+                            <button type="button" class="btn btn-sm btn-primary" 
+                                    onclick="openEditModal(<?php echo $d['id']; ?>)" 
+                                    data-bs-toggle="tooltip" title="Duzenle">
                                 <i class="bi bi-pencil"></i>
-                            </a>
+                            </button>
                             <a href="delete.php?id=<?php echo $d['id']; ?>" class="btn btn-sm btn-danger" onclick="return confirm('Silmek istiyor musunuz?')" data-bs-toggle="tooltip" title="Sil">
                                 <i class="bi bi-trash"></i>
                             </a>
@@ -352,6 +354,80 @@ include __DIR__ . '/../includes/header.php';
     </div>
 </div>
 
+<!-- Düzenle Modal -->
+<div class="modal fade" id="editDuyuruModal" tabindex="-1" aria-labelledby="editDuyuruModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDuyuruModalLabel">
+                    <i class="bi bi-pencil me-2"></i>Duyuru Düzenle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="editDuyuruForm">
+                <input type="hidden" id="edit_id" name="id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Başlık <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="edit_title" name="title" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">İçerik <span class="text-danger">*</span></label>
+                        <textarea class="form-control" id="edit_content" name="content" rows="4" required></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Tür <span class="text-danger">*</span></label>
+                            <select class="form-select" id="edit_type" name="type" required>
+                                <option value="">Seçiniz</option>
+                                <option value="text">Metin</option>
+                                <option value="url">URL</option>
+                                <option value="dialog">Dialog</option>
+                                <option value="info">Bilgi</option>
+                                <option value="five_stars">5 Yıldız</option>
+                            </select>
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label fw-bold">Öncelik <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" id="edit_priority" name="priority" value="5" min="1" max="100" required>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3" id="edit_urlField" style="display: none;">
+                        <label class="form-label fw-bold">URL</label>
+                        <input type="url" class="form-control" id="edit_url" name="url" placeholder="https://...">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Uygulama Paketi</label>
+                        <input type="text" class="form-control" id="edit_app_package" name="app_package" readonly>
+                        <small class="text-muted">Paket değiştirilemez. Yeni duyuru oluşturun.</small>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Durum</label>
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="edit_status" name="status">
+                            <label class="form-check-label" for="edit_status">Aktif</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="bi bi-x-lg"></i> İptal
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-check-lg"></i> Güncelle
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <?php
 $extra_js = <<<'EOD'
 <script>
@@ -460,6 +536,102 @@ document.getElementById('addDuyuruForm').addEventListener('submit', function(e) 
         alert('Bir hata oluştu!');
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Kaydet';
+    });
+});
+
+// Edit Modal - Tür değişimi
+document.getElementById('edit_type').addEventListener('change', function() {
+    if (this.value === 'url') {
+        document.getElementById('edit_urlField').style.display = 'block';
+        document.getElementById('edit_url').required = true;
+    } else {
+        document.getElementById('edit_urlField').style.display = 'none';
+        document.getElementById('edit_url').required = false;
+    }
+});
+
+// Düzenleme modalını aç
+function openEditModal(id) {
+    // Duyuru bilgilerini fetch ile al
+    fetch('get_duyuru.php?id=' + id)
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const duyuru = data.data;
+            
+            // Form alanlarını doldur
+            document.getElementById('edit_id').value = duyuru.id;
+            document.getElementById('edit_title').value = duyuru.title;
+            document.getElementById('edit_content').value = duyuru.content;
+            document.getElementById('edit_type').value = duyuru.type;
+            document.getElementById('edit_priority').value = duyuru.priority;
+            document.getElementById('edit_url').value = duyuru.url || '';
+            document.getElementById('edit_app_package').value = duyuru.app_package;
+            document.getElementById('edit_status').checked = duyuru.status === 'active';
+            
+            // URL alanını göster/gizle
+            if (duyuru.type === 'url') {
+                document.getElementById('edit_urlField').style.display = 'block';
+                document.getElementById('edit_url').required = true;
+            } else {
+                document.getElementById('edit_urlField').style.display = 'none';
+                document.getElementById('edit_url').required = false;
+            }
+            
+            // Modalı aç
+            const modal = new bootstrap.Modal(document.getElementById('editDuyuruModal'));
+            modal.show();
+        } else {
+            alert('Duyuru bilgileri yüklenemedi: ' + (data.error || 'Bilinmeyen hata'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu!');
+    });
+}
+
+// Düzenleme formu gönderimi
+document.getElementById('editDuyuruForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = {
+        id: document.getElementById('edit_id').value,
+        title: document.getElementById('edit_title').value,
+        content: document.getElementById('edit_content').value,
+        type: document.getElementById('edit_type').value,
+        priority: document.getElementById('edit_priority').value,
+        url: document.getElementById('edit_url').value,
+        app_package: document.getElementById('edit_app_package').value,
+        status: document.getElementById('edit_status').checked ? 'active' : 'inactive',
+        csrf_token: '<?php echo htmlspecialchars(generateCSRFToken()); ?>'
+    };
+    
+    const submitBtn = this.querySelector('button[type="submit"]');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Güncelleniyor...';
+    
+    fetch('update_duyuru.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert('Duyuru başarıyla güncellendi!');
+            location.reload();
+        } else {
+            alert('Hata: ' + (data.error || 'Bilinmeyen hata'));
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Güncelle';
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu!');
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-lg"></i> Güncelle';
     });
 });
 </script>
