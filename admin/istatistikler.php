@@ -1,20 +1,12 @@
 ﻿<?php
-ini_set('display_errors', 1);
-error_reporting(E_ALL);
-
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../db.php';
 require_once __DIR__ . '/../security.php';
 
 secureSessionStart();
 
-if(!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
-    header('Location: login.php');
-    exit;
-}
-
 $pdo = getDbConnection();
-$admin_username = isset($_SESSION['admin_username']) ? $_SESSION['admin_username'] : 'Admin';
+$page_title = "Istatistikler";
 $selectedPackage = isset($_GET['packageName']) ? $_GET['packageName'] : '';
 
 $packageStmt = $pdo->query("SELECT DISTINCT packageName FROM user_statistics ORDER BY packageName");
@@ -51,36 +43,12 @@ foreach($dailyData as $row) {
     $chartLogins[] = $row['logins'];
     $chartUsers[] = $row['users'];
 }
+
+$extra_css = '<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>';
+
+include __DIR__ . '/includes/header.php';
 ?>
-<!DOCTYPE html>
-<html lang="tr">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Istatistikler</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
-<link rel="stylesheet" href="assets/css/admin-style.css">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-</head>
-<body>
-<nav class="navbar navbar-expand-lg navbar-dark bg-gradient-primary">
-<div class="container-fluid">
-<a class="navbar-brand" href="index.php"><i class="bi bi-shield-check"></i> Admin</a>
-<div class="collapse navbar-collapse">
-<ul class="navbar-nav me-auto">
-<li class="nav-item"><a class="nav-link" href="index.php"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-<li class="nav-item"><a class="nav-link" href="duyurular/"><i class="bi bi-megaphone"></i> Duyurular</a></li>
-<li class="nav-item"><a class="nav-link active" href="istatistikler.php"><i class="bi bi-graph-up"></i> Istatistikler</a></li>
-</ul>
-<div class="d-flex">
-<span class="text-white me-3"><i class="bi bi-person-circle"></i> <?php echo htmlspecialchars($admin_username); ?></span>
-<a href="logout.php" class="btn btn-outline-light btn-sm">Cikis</a>
-</div>
-</div>
-</div>
-</nav>
-<div class="container-fluid py-4">
+
 <div class="row mb-4">
 <div class="col-md-6"><h1>Istatistikler</h1></div>
 <div class="col-md-6 text-end">
@@ -94,16 +62,19 @@ foreach($dailyData as $row) {
 </form>
 </div>
 </div>
+
 <div class="row mb-4">
 <div class="col-lg-3 col-md-6 mb-3"><div class="stat-card"><div class="stat-card-icon bg-primary"><i class="bi bi-calendar-day"></i></div><div class="stat-card-info"><div class="stat-card-title">Bugun</div><div class="stat-card-value"><?php echo number_format($today['total']); ?></div><small class="text-muted"><?php echo number_format($today['unique_users']); ?> kullanici</small></div></div></div>
 <div class="col-lg-3 col-md-6 mb-3"><div class="stat-card"><div class="stat-card-icon bg-info"><i class="bi bi-calendar-minus"></i></div><div class="stat-card-info"><div class="stat-card-title">Dun</div><div class="stat-card-value"><?php echo number_format($yesterday['total']); ?></div><small class="text-muted"><?php echo number_format($yesterday['unique_users']); ?> kullanici</small></div></div></div>
 <div class="col-lg-3 col-md-6 mb-3"><div class="stat-card"><div class="stat-card-icon bg-success"><i class="bi bi-calendar-week"></i></div><div class="stat-card-info"><div class="stat-card-title">Bu Hafta</div><div class="stat-card-value"><?php echo number_format($week['total']); ?></div><small class="text-muted"><?php echo number_format($week['unique_users']); ?> kullanici</small></div></div></div>
 <div class="col-lg-3 col-md-6 mb-3"><div class="stat-card"><div class="stat-card-icon bg-warning"><i class="bi bi-calendar-month"></i></div><div class="stat-card-info"><div class="stat-card-title">Bu Ay</div><div class="stat-card-value"><?php echo number_format($month['total']); ?></div><small class="text-muted"><?php echo number_format($month['unique_users']); ?> kullanici</small></div></div></div>
 </div>
+
 <div class="card mb-4">
 <div class="card-header"><h5><i class="bi bi-graph-up"></i> Son 30 Gun</h5></div>
 <div class="card-body"><canvas id="chart" height="80"></canvas></div>
 </div>
+
 <div class="card">
 <div class="card-header"><h5><i class="bi bi-table"></i> Gunluk Detaylar</h5></div>
 <div class="card-body">
@@ -129,10 +100,13 @@ $day = $days[date('N', strtotime($row['day'])) - 1];
 </div>
 </div>
 </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<?php
+$extra_js = <<<'EOD'
 <script>
 new Chart(document.getElementById('chart'),{type:'line',data:{labels:<?php echo json_encode($chartLabels); ?>,datasets:[{label:'Giris',data:<?php echo json_encode($chartLogins); ?>,borderColor:'rgb(102,126,234)',backgroundColor:'rgba(102,126,234,0.1)',tension:0.3,fill:true},{label:'Kullanici',data:<?php echo json_encode($chartUsers); ?>,borderColor:'rgb(40,167,69)',backgroundColor:'rgba(40,167,69,0.1)',tension:0.3,fill:true}]},options:{responsive:true,scales:{y:{beginAtZero:true}}}});
 </script>
-</body>
-</html>
+EOD;
+
+include __DIR__ . '/includes/footer.php';
+?>
