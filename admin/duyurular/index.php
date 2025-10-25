@@ -271,8 +271,12 @@ include __DIR__ . '/../includes/header.php';
                         <div class="col-md-6 mb-3">
                             <label class="form-label fw-bold">Tür <span class="text-danger">*</span></label>
                             <select class="form-select" id="type" name="type" required>
+                                <option value="">Seçiniz</option>
                                 <option value="text">Metin</option>
                                 <option value="url">URL</option>
+                                <option value="dialog">Dialog</option>
+                                <option value="info">Bilgi</option>
+                                <option value="five_stars">5 Yıldız</option>
                             </select>
                         </div>
                         
