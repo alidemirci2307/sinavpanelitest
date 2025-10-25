@@ -78,6 +78,9 @@ $packages = $packagesStmt->fetchAll(PDO::FETCH_COLUMN);
 $typesStmt = $pdo->query("SELECT DISTINCT type FROM duyurular ORDER BY type");
 $types = $typesStmt->fetchAll(PDO::FETCH_COLUMN);
 
+// CSRF token oluştur
+$csrfToken = generateCSRFToken();
+
 include __DIR__ . '/../includes/header.php';
 ?>
 
@@ -181,7 +184,7 @@ include __DIR__ . '/../includes/header.php';
     
     <?php if(count($duyurular) > 0): ?>
     <form method="POST" id="bulkForm">
-        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars(generateCSRFToken()); ?>">
+        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
         <input type="hidden" name="action" id="bulkAction">
         <div class="mb-3">
             <button type="button" class="btn btn-success btn-sm" onclick="bulkUpdate('activate')">
@@ -486,7 +489,7 @@ document.getElementById('addDuyuruForm').addEventListener('submit', function(e) 
         priority: document.getElementById('priority').value,
         url: document.getElementById('url').value,
         status: document.getElementById('status').checked ? 'active' : 'inactive',
-        csrf_token: '<?php echo htmlspecialchars(generateCSRFToken()); ?>'
+        csrf_token: '<?php echo htmlspecialchars($csrfToken); ?>'
     };
     
     // Paket seçimini belirle
@@ -604,7 +607,7 @@ document.getElementById('editDuyuruForm').addEventListener('submit', function(e)
         url: document.getElementById('edit_url').value,
         app_package: document.getElementById('edit_app_package').value,
         status: document.getElementById('edit_status').checked ? 'active' : 'inactive',
-        csrf_token: '<?php echo htmlspecialchars(generateCSRFToken()); ?>'
+        csrf_token: '<?php echo htmlspecialchars($csrfToken); ?>'
     };
     
     const submitBtn = this.querySelector('button[type="submit"]');
