@@ -17,9 +17,19 @@ $pdo = getDbConnection();
 // JSON veri al
 $input = json_decode(file_get_contents('php://input'), true);
 
+// Debug için
+error_log("Session CSRF Token: " . (isset($_SESSION[CSRF_TOKEN_NAME]) ? $_SESSION[CSRF_TOKEN_NAME] : 'NOT SET'));
+error_log("Received CSRF Token: " . (isset($input['csrf_token']) ? $input['csrf_token'] : 'NOT SET'));
+
 if (!isset($input['csrf_token']) || !verifyCSRFToken($input['csrf_token'])) {
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'error' => 'CSRF token geçersiz']);
+    $errorMsg = 'CSRF token geçersiz';
+    if (!isset($input['csrf_token'])) {
+        $errorMsg = 'CSRF token gönderilmedi';
+    } elseif (!isset($_SESSION[CSRF_TOKEN_NAME])) {
+        $errorMsg = 'Session\'da CSRF token bulunamadı';
+    }
+    echo json_encode(['success' => false, 'error' => $errorMsg]);
     exit;
 }
 

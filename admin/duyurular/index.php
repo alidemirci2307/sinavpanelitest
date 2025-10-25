@@ -250,6 +250,9 @@ include __DIR__ . '/../includes/header.php';
     <?php endif; ?>
 </div>
 
+<!-- CSRF Token (gizli) -->
+<input type="hidden" id="page_csrf_token" value="<?php echo htmlspecialchars($csrfToken); ?>">
+
 <!-- Yeni Duyuru Modal -->
 <div class="modal fade" id="addDuyuruModal" tabindex="-1" aria-labelledby="addDuyuruModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
@@ -482,6 +485,8 @@ document.getElementById('type').addEventListener('change', function() {
 document.getElementById('addDuyuruForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    const csrfToken = document.getElementById('page_csrf_token').value;
+    
     const formData = {
         title: document.getElementById('title').value,
         content: document.getElementById('content').value,
@@ -489,7 +494,7 @@ document.getElementById('addDuyuruForm').addEventListener('submit', function(e) 
         priority: document.getElementById('priority').value,
         url: document.getElementById('url').value,
         status: document.getElementById('status').checked ? 'active' : 'inactive',
-        csrf_token: '<?php echo htmlspecialchars($csrfToken); ?>'
+        csrf_token: csrfToken
     };
     
     // Paket seçimini belirle
@@ -598,6 +603,8 @@ function openEditModal(id) {
 document.getElementById('editDuyuruForm').addEventListener('submit', function(e) {
     e.preventDefault();
     
+    const csrfToken = document.getElementById('page_csrf_token').value;
+    
     const formData = {
         id: document.getElementById('edit_id').value,
         title: document.getElementById('edit_title').value,
@@ -607,8 +614,11 @@ document.getElementById('editDuyuruForm').addEventListener('submit', function(e)
         url: document.getElementById('edit_url').value,
         app_package: document.getElementById('edit_app_package').value,
         status: document.getElementById('edit_status').checked ? 'active' : 'inactive',
-        csrf_token: '<?php echo htmlspecialchars($csrfToken); ?>'
+        csrf_token: csrfToken
     };
+    
+    console.log('Sending CSRF Token:', formData.csrf_token);
+    console.log('Form Data:', formData);
     
     const submitBtn = this.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
